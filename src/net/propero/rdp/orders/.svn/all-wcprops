@@ -1,0 +1,173 @@
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/svnroot/properjavardp/!svn/ver/36/branches/cisco/properJavaRDP-1.1/src/net/propero/rdp/orders
+END
+RectangleOrder.java
+K 25
+svn:wc:ra_dav:version-url
+V 114
+/svnroot/properjavardp/!svn/ver/36/branches/cisco/properJavaRDP-1.1/src/net/propero/rdp/orders/RectangleOrder.java
+END
+DeskSaveOrder.java
+K 25
+svn:wc:ra_dav:version-url
+V 113
+/svnroot/properjavardp/!svn/ver/36/branches/cisco/properJavaRDP-1.1/src/net/propero/rdp/orders/DeskSaveOrder.java
+END
+Text2Order.java
+K 25
+svn:wc:ra_dav:version-url
+V 110
+/svnroot/properjavardp/!svn/ver/36/branches/cisco/properJavaRDP-1.1/src/net/propero/rdp/orders/Text2Order.java
+END
+Order.java.bak
+K 25
+svn:wc:ra_dav:version-url
+V 109
+/svnroot/properjavardp/!svn/ver/36/branches/cisco/properJavaRDP-1.1/src/net/propero/rdp/orders/Order.java.bak
+END
+MemBltOrder.java.bak
+K 25
+svn:wc:ra_dav:version-url
+V 115
+/svnroot/properjavardp/!svn/ver/36/branches/cisco/properJavaRDP-1.1/src/net/propero/rdp/orders/MemBltOrder.java.bak
+END
+ScreenBltOrder.java.bak
+K 25
+svn:wc:ra_dav:version-url
+V 118
+/svnroot/properjavardp/!svn/ver/36/branches/cisco/properJavaRDP-1.1/src/net/propero/rdp/orders/ScreenBltOrder.java.bak
+END
+Order.java
+K 25
+svn:wc:ra_dav:version-url
+V 105
+/svnroot/properjavardp/!svn/ver/36/branches/cisco/properJavaRDP-1.1/src/net/propero/rdp/orders/Order.java
+END
+MemBltOrder.java
+K 25
+svn:wc:ra_dav:version-url
+V 111
+/svnroot/properjavardp/!svn/ver/36/branches/cisco/properJavaRDP-1.1/src/net/propero/rdp/orders/MemBltOrder.java
+END
+ScreenBltOrder.java
+K 25
+svn:wc:ra_dav:version-url
+V 114
+/svnroot/properjavardp/!svn/ver/36/branches/cisco/properJavaRDP-1.1/src/net/propero/rdp/orders/ScreenBltOrder.java
+END
+PatBltOrder.java.bak
+K 25
+svn:wc:ra_dav:version-url
+V 115
+/svnroot/properjavardp/!svn/ver/36/branches/cisco/properJavaRDP-1.1/src/net/propero/rdp/orders/PatBltOrder.java.bak
+END
+Pen.java.bak
+K 25
+svn:wc:ra_dav:version-url
+V 107
+/svnroot/properjavardp/!svn/ver/36/branches/cisco/properJavaRDP-1.1/src/net/propero/rdp/orders/Pen.java.bak
+END
+LineOrder.java.bak
+K 25
+svn:wc:ra_dav:version-url
+V 113
+/svnroot/properjavardp/!svn/ver/36/branches/cisco/properJavaRDP-1.1/src/net/propero/rdp/orders/LineOrder.java.bak
+END
+Brush.java.bak
+K 25
+svn:wc:ra_dav:version-url
+V 109
+/svnroot/properjavardp/!svn/ver/36/branches/cisco/properJavaRDP-1.1/src/net/propero/rdp/orders/Brush.java.bak
+END
+PatBltOrder.java
+K 25
+svn:wc:ra_dav:version-url
+V 111
+/svnroot/properjavardp/!svn/ver/36/branches/cisco/properJavaRDP-1.1/src/net/propero/rdp/orders/PatBltOrder.java
+END
+BoundsOrder.java.bak
+K 25
+svn:wc:ra_dav:version-url
+V 115
+/svnroot/properjavardp/!svn/ver/36/branches/cisco/properJavaRDP-1.1/src/net/propero/rdp/orders/BoundsOrder.java.bak
+END
+Pen.java
+K 25
+svn:wc:ra_dav:version-url
+V 103
+/svnroot/properjavardp/!svn/ver/36/branches/cisco/properJavaRDP-1.1/src/net/propero/rdp/orders/Pen.java
+END
+LineOrder.java
+K 25
+svn:wc:ra_dav:version-url
+V 109
+/svnroot/properjavardp/!svn/ver/36/branches/cisco/properJavaRDP-1.1/src/net/propero/rdp/orders/LineOrder.java
+END
+Brush.java
+K 25
+svn:wc:ra_dav:version-url
+V 105
+/svnroot/properjavardp/!svn/ver/36/branches/cisco/properJavaRDP-1.1/src/net/propero/rdp/orders/Brush.java
+END
+PolyLineOrder.java.bak
+K 25
+svn:wc:ra_dav:version-url
+V 117
+/svnroot/properjavardp/!svn/ver/36/branches/cisco/properJavaRDP-1.1/src/net/propero/rdp/orders/PolyLineOrder.java.bak
+END
+BoundsOrder.java
+K 25
+svn:wc:ra_dav:version-url
+V 111
+/svnroot/properjavardp/!svn/ver/36/branches/cisco/properJavaRDP-1.1/src/net/propero/rdp/orders/BoundsOrder.java
+END
+PolyLineOrder.java
+K 25
+svn:wc:ra_dav:version-url
+V 113
+/svnroot/properjavardp/!svn/ver/36/branches/cisco/properJavaRDP-1.1/src/net/propero/rdp/orders/PolyLineOrder.java
+END
+TriBltOrder.java.bak
+K 25
+svn:wc:ra_dav:version-url
+V 115
+/svnroot/properjavardp/!svn/ver/36/branches/cisco/properJavaRDP-1.1/src/net/propero/rdp/orders/TriBltOrder.java.bak
+END
+DestBltOrder.java.bak
+K 25
+svn:wc:ra_dav:version-url
+V 116
+/svnroot/properjavardp/!svn/ver/36/branches/cisco/properJavaRDP-1.1/src/net/propero/rdp/orders/DestBltOrder.java.bak
+END
+RectangleOrder.java.bak
+K 25
+svn:wc:ra_dav:version-url
+V 118
+/svnroot/properjavardp/!svn/ver/36/branches/cisco/properJavaRDP-1.1/src/net/propero/rdp/orders/RectangleOrder.java.bak
+END
+TriBltOrder.java
+K 25
+svn:wc:ra_dav:version-url
+V 111
+/svnroot/properjavardp/!svn/ver/36/branches/cisco/properJavaRDP-1.1/src/net/propero/rdp/orders/TriBltOrder.java
+END
+DestBltOrder.java
+K 25
+svn:wc:ra_dav:version-url
+V 112
+/svnroot/properjavardp/!svn/ver/36/branches/cisco/properJavaRDP-1.1/src/net/propero/rdp/orders/DestBltOrder.java
+END
+DeskSaveOrder.java.bak
+K 25
+svn:wc:ra_dav:version-url
+V 117
+/svnroot/properjavardp/!svn/ver/36/branches/cisco/properJavaRDP-1.1/src/net/propero/rdp/orders/DeskSaveOrder.java.bak
+END
+Text2Order.java.bak
+K 25
+svn:wc:ra_dav:version-url
+V 114
+/svnroot/properjavardp/!svn/ver/36/branches/cisco/properJavaRDP-1.1/src/net/propero/rdp/orders/Text2Order.java.bak
+END
