@@ -664,29 +664,11 @@ System.out.println("执行:" + major + ", fileId=" + fileId);
             if(device instanceof DiskRdpdrDevice) {
                 DiskRdpdrDevice ddevice = (DiskRdpdrDevice) device;
                 
-                try {
-                    buffer = ddevice.disk_query_information(data, fileId);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                if(buffer == null) {
-                    buffer = new byte[1];
-                    buffer_len = 1;
-                } else {
-                    result = buffer_len = buffer.length;
-                }
-            }
-            break;
-
-        case IRP_MJ_SET_INFORMATION:
-            if(device instanceof DiskRdpdrDevice) {
-                DiskRdpdrDevice ddevice = (DiskRdpdrDevice) device;
-                
                 ByteArrayOutputStream bout = new ByteArrayOutputStream();
                 DataOutputStream out = new DataOutputStream(bout);
                 
                 try {
-                    status = ddevice.disk_set_information(data, fileId, out);
+                    status = ddevice.disk_query_information(data, fileId, out);
                     out.flush();
                     bout.flush();
                     buffer = bout.toByteArray();
@@ -694,11 +676,17 @@ System.out.println("执行:" + major + ", fileId=" + fileId);
                     e.printStackTrace();
                 }
                 buffer_len = buffer.length;
-                if(buffer_len == 0) {
-                    buffer_len++;
-                    buffer = new byte[1];
-                }
                 result = buffer_len;
+            }
+            break;
+
+        case IRP_MJ_SET_INFORMATION:
+            if(device instanceof DiskRdpdrDevice) {
+                DiskRdpdrDevice ddevice = (DiskRdpdrDevice) device;
+                
+                status = ddevice.disk_set_information(data, fileId);
+                buffer = new byte[1];
+                result = buffer_len = 1;
             }
             break;
 

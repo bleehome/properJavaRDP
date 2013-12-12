@@ -145,7 +145,7 @@ public class DiskRdpdrDevice extends RdpdrDevice {
 //        mode = S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH;
 
         int desiredAccess = data.getBigEndian32();
-        long allocationSize = data.getLittleEndian32() + (data.getLittleEndian32() << 32);
+        long allocationSize = ((long)data.getLittleEndian32()) + (((long)data.getLittleEndian32()) << 32);
         int fileAttributes = data.getLittleEndian32();
         int sharedAccess = data.getLittleEndian32();
         int createDisposition = data.getLittleEndian32();
@@ -280,7 +280,7 @@ public class DiskRdpdrDevice extends RdpdrDevice {
     @Override
     public int write(RdpPacket data, int fileId, DataOutputStream out) throws IOException {
         int length = data.getLittleEndian32();
-        long offset = data.getLittleEndian32() + (data.getLittleEndian32() << 32);
+        long offset = ((long)data.getLittleEndian32()) + (((long)data.getLittleEndian32()) << 32);
         data.incrementPosition(20);
         
         OpenedFile of = openedFiles.get(fileId);
@@ -331,16 +331,15 @@ public class DiskRdpdrDevice extends RdpdrDevice {
         return RD_STATUS_SUCCESS;
     }
 
-    public byte[] disk_query_information(RdpPacket data, int fileId) throws IOException {
+    public int disk_query_information(RdpPacket data, int fileId, DataOutputStream out) throws IOException {
         int fsInformationClass = data.getLittleEndian32();
         int length = data.getLittleEndian32();
         OpenedFile of = openedFiles.get(fileId);
-        if(of == null) {
-            return null;
-        }
         
-        ByteArrayOutputStream bout = new ByteArrayOutputStream();
-        DataOutputStream out = new DataOutputStream(bout);
+        if(of == null || !of.file.exists()) {
+            out.write(0);
+            return RD_STATUS_ACCESS_DENIED;
+        }
         
         System.out.println("disk_query_information:" + of.filePath);
         
@@ -390,15 +389,14 @@ public class DiskRdpdrDevice extends RdpdrDevice {
             writeIntLe(out, 0);  /* Reparse Tag */
             
             break;
+        default:
+            return RD_STATUS_INVALID_PARAMETER;
         }
-        out.flush();
-        bout.flush();
         
-        byte[] buffer = bout.toByteArray();
-        return buffer;
+        return RD_STATUS_SUCCESS;
     }
     
-    public int disk_set_information(RdpPacket data, int fileId, DataOutputStream out) {
+    public int disk_set_information(RdpPacket data, int fileId) {
         int fsInformationClass = data.getLittleEndian32();
         int length = data.getLittleEndian32();
         data.incrementPosition(24);
@@ -412,13 +410,13 @@ public class DiskRdpdrDevice extends RdpdrDevice {
             javaxt.io.File f = new javaxt.io.File(of.file);
 //            of.file.set
 //            f.set
-            long createTime = data.getLittleEndian32() + (data.getLittleEndian32() << 32);
-            long accessTime = parseWindowsTime(data.getLittleEndian32() + (data.getLittleEndian32() << 32));
-            long writeTime = parseWindowsTime(data.getLittleEndian32() + (data.getLittleEndian32() << 32));
-            long changeTime = parseWindowsTime(data.getLittleEndian32() + (data.getLittleEndian32() << 32));
+            long createTime = data.getLittleEndian32() + (((long)data.getLittleEndian32()) << 32);
+            long accessTime = parseWindowsTime((long)data.getLittleEndian32() + ((long)(data.getLittleEndian32()) << 32));
+            long writeTime = parseWindowsTime((long)data.getLittleEndian32() + ((long)(data.getLittleEndian32()) << 32));
+            long changeTime = parseWindowsTime((long)data.getLittleEndian32() + ((long)(data.getLittleEndian32()) << 32));
             int fileAttributes = data.getLittleEndian32();
             
-            of.file.setLastModified(changeTime);
+            of.file.setLastModified(writeTime);
             
 //            if((fileAttributes & FILE_ATTRIBUTE_READONLY) != 0) {
 //                of.file.setReadOnly();
@@ -653,9 +651,6 @@ public class DiskRdpdrDevice extends RdpdrDevice {
             return RD_STATUS_ACCESS_DENIED;
         }
         
-        
-        
-        
         return RD_STATUS_PENDING;
     }
     
@@ -727,7 +722,7 @@ public class DiskRdpdrDevice extends RdpdrDevice {
     
     public int read(RdpPacket data, int fileId, DataOutputStream out) throws IOException {
         int length = data.getLittleEndian32();
-        long offset = data.getLittleEndian32() + (data.getLittleEndian32() << 32);
+        long offset = ((long)data.getLittleEndian32()) + (((long)data.getLittleEndian32()) << 32);
         
         OpenedFile of = openedFiles.get(fileId);
         if(of == null) {
