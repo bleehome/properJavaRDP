@@ -44,6 +44,8 @@ import net.propero.rdp.keymapping.KeyCode_FileBased;
 import net.propero.rdp.rdp5.Rdp5;
 import net.propero.rdp.rdp5.VChannels;
 import net.propero.rdp.rdp5.cliprdr.ClipChannel;
+import net.propero.rdp.rdp5.rdpdr.DiskRdpdrDevice;
+import net.propero.rdp.rdp5.rdpdr.RdpdrChannel;
 import net.propero.rdp.tools.SendEvent;
 
 import org.apache.log4j.BasicConfigurator;
@@ -327,6 +329,11 @@ public class Rdesktop {
 				"bc:d:f::g:k:l:m:n:p:s:t:T:u:o:r:", alo);
 
 		ClipChannel clipChannel = new ClipChannel();
+		RdpdrChannel rdpdrChannel = new RdpdrChannel();
+		
+		//注册远程挂载
+		DiskRdpdrDevice device = new DiskRdpdrDevice("linux", "/home/blee/temp/rdptest");
+		rdpdrChannel.deviceRegister(device);
 
 		while ((c = g.getopt()) != -1) {
 			switch (c) {
@@ -530,8 +537,11 @@ public class Rdesktop {
 		// Initialise all RDP5 channels
 		if (Options.use_rdp5) {
 			// TODO: implement all relevant channels
-			if (Options.map_clipboard)
-				channels.register(clipChannel);
+			if (Options.map_clipboard) {
+			    channels.register(clipChannel);
+			}
+			channels.register(rdpdrChannel);
+			
 		}
 
 		// Now do the startup...
