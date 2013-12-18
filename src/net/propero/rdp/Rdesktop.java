@@ -44,6 +44,7 @@ import net.propero.rdp.keymapping.KeyCode_FileBased;
 import net.propero.rdp.rdp5.Rdp5;
 import net.propero.rdp.rdp5.VChannels;
 import net.propero.rdp.rdp5.cliprdr.ClipChannel;
+import net.propero.rdp.rdp5.disk.DiskChannel;
 import net.propero.rdp.rdp5.rdpdr.DiskRdpdrDevice;
 import net.propero.rdp.rdp5.rdpdr.RdpdrChannel;
 import net.propero.rdp.tools.SendEvent;
@@ -149,7 +150,7 @@ public class Rdesktop {
 
 		default:
 			if (reason > 0x1000 && reason < 0x7fff) {
-				text = "Internal protocol error";
+				text = "Internal protocol error: 0x" + Integer.toHexString(reason);
 			} else {
 				text = "Unknown reason";
 			}
@@ -329,12 +330,13 @@ public class Rdesktop {
 				"bc:d:f::g:k:l:m:n:p:s:t:T:u:o:r:", alo);
 
 		ClipChannel clipChannel = new ClipChannel();
-		RdpdrChannel rdpdrChannel = new RdpdrChannel();
 		
-		//注册远程挂载
-		DiskRdpdrDevice device = new DiskRdpdrDevice("linux", "/home/blee/temp/rdptest");
-		rdpdrChannel.deviceRegister(device);
-
+		DiskChannel diskChannel = new DiskChannel();
+		diskChannel.addDiskDevice("linux", "/home/blee/temp/rdptest");
+		
+//		RdpdrChannel diskChannel = new RdpdrChannel();
+//		diskChannel.deviceRegister(new DiskRdpdrDevice("linux", "/home/blee/temp/rdptest"));
+		
 		while ((c = g.getopt()) != -1) {
 			switch (c) {
 
@@ -540,8 +542,7 @@ public class Rdesktop {
 			if (Options.map_clipboard) {
 			    channels.register(clipChannel);
 			}
-			channels.register(rdpdrChannel);
-			
+			channels.register(diskChannel);
 		}
 
 		// Now do the startup...

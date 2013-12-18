@@ -1,6 +1,5 @@
 package net.propero.rdp.rdp5.rdpdr;
 
-import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -158,6 +157,9 @@ public class DiskRdpdrDevice extends RdpdrDevice {
             data.copyToByteArray(pathByte, 0, data.getPosition(), pathLength);
             fileName = parsePath(pathByte);
             fileName = fileName.replaceAll("\\\\", "/");
+            if(fileName.endsWith("/")) {
+                fileName = fileName.substring(0, fileName.length() - 1);
+            }
         }
         
         System.out.println("creating path=" + path + fileName);
@@ -172,7 +174,7 @@ public class DiskRdpdrDevice extends RdpdrDevice {
         while(keys.hasNext()) {
             int key = keys.next();
             of = openedFiles.get(key);
-            if(fileName.equals(of.name)) {
+            if(fileName.equals(of.name) && of.closed) {
                 find = true;
                 break;
             }
@@ -265,6 +267,7 @@ public class DiskRdpdrDevice extends RdpdrDevice {
         
         if(result == RD_STATUS_SUCCESS) {
             holder.put("fileId", of.fileId);
+            of.closed = false;
             if(!find) {
                 openedFiles.put(of.fileId, of);
             }
@@ -285,21 +288,26 @@ public class DiskRdpdrDevice extends RdpdrDevice {
         
         OpenedFile of = openedFiles.get(fileId);
         if(of == null) {
+            writeIntLe(out, 0);
             return RD_STATUS_INVALID_HANDLE;
         }
         
         RandomAccessFile raf = null;
         try {
             raf = of.getRaf();
+            raf.seek(offset);
+            for(int l = 0; l < length; l++) {
+                raf.write(data.get8());
+            }
         } catch (FileNotFoundException e) {
+            writeIntLe(out, 0);
             return RD_STATUS_ACCESS_DENIED;
+        } finally {
+            if(raf != null) {
+                raf.close();
+            }
         }
-        raf.seek(offset);
         
-        for(int l = 0; l < length; l++) {
-            
-            raf.write(data.get8());
-        }
         writeIntLe(out, length);
         
         return RD_STATUS_SUCCESS;
@@ -311,6 +319,7 @@ public class DiskRdpdrDevice extends RdpdrDevice {
         if(!of.file.exists()) {
             return RD_STATUS_NO_SUCH_FILE;
         }
+        of.closed = true;
         if(of.delete_on_close) {
             if(of.file.delete()) {
                 return RD_STATUS_SUCCESS;
@@ -474,11 +483,7 @@ public class DiskRdpdrDevice extends RdpdrDevice {
         int file_attributes = 0;
         
         //23 bytes padding
-        int i = 0;
-        while(i < 23) {
-            i++;
-            data.get8();
-        }
+        data.incrementPosition(23);
         OpenedFile of = openedFiles.get(fileId);
         
         String pattern = "";
@@ -605,7 +610,7 @@ public class DiskRdpdrDevice extends RdpdrDevice {
             writePath(out, subFile);
             break;
         case FileNamesInformation:
-            writeIntLe(out, 0);//EaSize
+            writeIntLe(out, 2 * subFile.length() + 2);//EaSize
             writePath(out, subFile);
             break;
         default:
@@ -664,7 +669,7 @@ public class DiskRdpdrDevice extends RdpdrDevice {
         }
         
         int serial = 0;
-        String label = "CLOUDSOFT";
+        String label = "cloudsoft";
         String type ="RDPFS";
         
         switch(fsInformationClass) {
@@ -810,6 +815,7 @@ public class DiskRdpdrDevice extends RdpdrDevice {
         RandomAccessFile raf = null;
         FileChannel fc = null;
         private boolean rafClosed = true;
+        boolean closed = false;
         
         Iterator<String> subfiles = null;
         

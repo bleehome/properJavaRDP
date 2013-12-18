@@ -4,7 +4,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 
 import net.propero.rdp.RdesktopException;
@@ -16,6 +15,8 @@ import net.propero.rdp.rdp5.VChannels;
 import net.propero.rdp.tools.HexDump;
 
 public class RdpdrChannel extends VChannel {
+    
+    static final String CLIENT_NAME = "CLOUDSOFT";
 
     private final static int DEVICE_TYPE_SERIAL = 0x01;
     private final static int DEVICE_TYPE_PARALLEL = 0x02;
@@ -150,7 +151,7 @@ public class RdpdrChannel extends VChannel {
     public final static int IRP_MN_QUERY_DIRECTORY         =  0x01;
     public final static int IRP_MN_NOTIFY_CHANGE_DIRECTORY =  0x02;
 
-    public int rdpdr_version_minor = DR_MINOR_RDP_VERSION_5_2;
+    public int rdpdr_version_minor = DR_MINOR_RDP_VERSION_6_X;
     public int rdpdr_clientid = 0;
     public String rdpdr_clientname = null;
 
@@ -169,15 +170,18 @@ public class RdpdrChannel extends VChannel {
     public String name() {
         return "rdpdr";
     }
+    
+    private int receive_packet_index = 0;
+    private int send_packet_index = 0;
 
     @Override
     public void process(RdpPacket data) throws RdesktopException, IOException,
             CryptoException {
-        int size = data.capacity();
+        int size = data.size();
         int position = data.getPosition();
         byte[] dump = new byte[size];
         data.copyToByteArray(dump, 0, position, size-position);
-        System.out.println("--- rdpdr_process ---");
+        System.out.print("\n"+(receive_packet_index++)+"------------------->>>>>>>>>>>>>>> data recieved.");
         System.out.println(HexDump.dumpHexString(dump));
         
         int component = data.getLittleEndian16();
@@ -199,7 +203,8 @@ public class RdpdrChannel extends VChannel {
                 break;
 
             case PAKID_CORE_CLIENTID_CONFIRM:
-                rdpdr_send_capabilities();
+                rdpdr_process_server_clientid_confirm(data);
+//                rdpdr_send_capabilities();
 //                rdpdr_send_available();
 
                 /*
@@ -215,9 +220,10 @@ public class RdpdrChannel extends VChannel {
                 break;
 
             case PAKID_CORE_DEVICE_REPLY:
+                System.out.println(data.getLittleEndian32() + " status = " + data.getLittleEndian32());
                 /* connect to a specific resource */
-                int deviceID = data.getLittleEndian32();
-                int status = data.getLittleEndian32();
+//                int deviceID = data.getLittleEndian32();
+//                int status = data.getLittleEndian32();
                 break;
 
             case PAKID_CORE_DEVICE_IOREQUEST:
@@ -256,14 +262,15 @@ public class RdpdrChannel extends VChannel {
     }
 
     private void rdpdr_process_server_clientid_confirm(RdpPacket data) {
-        int versionMinor = data.getLittleEndian16(); // versionMinor
-        int clientID = data.getLittleEndian32(); // clientID
+        int _versionMajor = data.getLittleEndian16();
+        int _versionMinor = data.getLittleEndian16();
+        int _clientId = data.getLittleEndian32();
 
-        if (rdpdr_clientid != clientID)
-            rdpdr_clientid = clientID;
+        if (rdpdr_clientid != _clientId)
+            rdpdr_clientid = _clientId;
 
-        if (versionMinor != rdpdr_version_minor)
-            rdpdr_version_minor = versionMinor;
+        if (_versionMinor != rdpdr_version_minor)
+            rdpdr_version_minor = _versionMinor;
     }
 
     private void rdpdr_send_client_announce_reply() {
@@ -292,38 +299,24 @@ public class RdpdrChannel extends VChannel {
     }
 
     private void rdpdr_send_client_name_request() {
-        RdpPacket_Localised s;
-        int hostlen;
+        int clientNameLen = CLIENT_NAME.length() * 2;
+        RdpPacket_Localised s =new RdpPacket_Localised(16 + clientNameLen + 2);
 
-        if (null == rdpdr_clientname) {
-            try {
-                rdpdr_clientname = java.net.InetAddress.getLocalHost()
-                        .getHostName();
-            } catch (UnknownHostException e) {
-                rdpdr_clientname = "127.0.0.1";
-                e.printStackTrace();
-            }
-        }
-        hostlen = rdpdr_clientname.length() * 2;
-
-        s = new RdpPacket_Localised(16 + hostlen + 2);
         s.setLittleEndian16(RDPDR_COMPONENT_TYPE_CORE);
         s.setLittleEndian16(PAKID_CORE_CLIENT_NAME);
-        s.setLittleEndian32(1);// unicodeFlag, 0 for ASCII and 1 for Unicode
-        s.setLittleEndian32(0);// codePage, must be set to zero
-        s.setLittleEndian32(hostlen + 2); // clientID, given by the server in a
-                                          // Server Announce Request
-        if (hostlen > 0) {
+        s.setLittleEndian32(0x00000001);/* unicodeFlag, 0 for ASCII and 1 for Unicode */
+        s.setLittleEndian32(0);/* codePage, must be set to zero */
+        s.setLittleEndian32(clientNameLen + 2); //ComputerNameLen,including null terminator.
+        if (clientNameLen > 0) {
             try {
-                s.copyFromByteArray(rdpdr_clientname.getBytes("UTF-16LE"), 0,
-                        s.getPosition(), hostlen);
+                s.copyFromByteArray(CLIENT_NAME.getBytes("UTF-16LE"), 0,
+                        s.getPosition(), clientNameLen);
             } catch (UnsupportedEncodingException e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
-            s.incrementPosition(hostlen);
+            s.incrementPosition(clientNameLen);
         }
-        s.setLittleEndian16(0);
+        s.setLittleEndian16(0);//the null terminator of client name
         s.markEnd();
 
         try {
@@ -334,39 +327,20 @@ public class RdpdrChannel extends VChannel {
     }
 
     private void rdpdr_process_capabilities(RdpPacket data) {
-        int i;
         int numCapabilities = data.getLittleEndian16();
-        /* pad (2 bytes) */
-        data.incrementPosition(2);
-
-        for (i = 0; i < numCapabilities; i++) {
+        data.incrementPosition(2);//2 bytes padding
+        
+        for(int i = 0; i < numCapabilities; i++) {
             int capabilityType = data.getLittleEndian16();
-
-            switch (capabilityType) {
+            int capabilityLength;
+            switch(capabilityType) {
             case CAP_GENERAL_TYPE:
-                rdpdr_process_general_capset(data);
-                break;
-
             case CAP_PRINTER_TYPE:
-                rdpdr_process_printer_capset(data);
-                break;
-
             case CAP_PORT_TYPE:
-                rdpdr_process_port_capset(data);
-                break;
-
             case CAP_DRIVE_TYPE:
-                rdpdr_process_drive_capset(data);
-                break;
-
             case CAP_SMARTCARD_TYPE:
-                rdpdr_process_smartcard_capset(data);
-                break;
-
-            default:
-                // fprintf(stderr,
-                // "unimpl: Device redirection capability set type %d\n",
-                // capabilityType);
+                capabilityLength = data.getLittleEndian16();
+                data.incrementPosition(capabilityLength - 4);
                 break;
             }
         }
@@ -441,25 +415,9 @@ public class RdpdrChannel extends VChannel {
         s.setLittleEndian16(5);// numCapabilities
         s.setLittleEndian16(0);// pad
 
-        /* Output device direction general capability set */
-        // s.setLittleEndian16(1); /* first */
-        // s.setLittleEndian16(0x28); /* length */
-        // s.setLittleEndian32(1);
-        // s.setLittleEndian32(2);
-        // s.setLittleEndian16(2);
-        // s.setLittleEndian16(5);
-        // s.setLittleEndian16(1);
-        // s.setLittleEndian16(5);
-        // s.setLittleEndian16(0xFFFF);
-        // s.setLittleEndian16(0);
-        // s.setLittleEndian32(0);
-        // s.setLittleEndian32(3);
-        // s.setLittleEndian32(0);
-        // s.setLittleEndian32(0);
-
         s.setLittleEndian16(CAP_GENERAL_TYPE);
         s.setLittleEndian16(44);
-        s.setLittleEndian32(GENERAL_CAPABILITY_VERSION_01);
+        s.setLittleEndian32(GENERAL_CAPABILITY_VERSION_02);
         s.setLittleEndian32(0);// osType, ignored on receipt
         s.setLittleEndian32(0);// osVersion, unused and must be set to zero
         s.setLittleEndian16(1); // protocolMajorVersion, must be set to 1
@@ -542,8 +500,9 @@ public class RdpdrChannel extends VChannel {
             }
         }
         s.markEnd();
-        byte[] outputbyte = new byte[s.size()];
-        s.copyToByteArray(outputbyte, 0, 0, s.size());
+//        byte[] outputbyte = new byte[s.size()];
+//        s.copyToByteArray(outputbyte, 0, 0, s.size());
+
         try {
             this.send_packet(s);
         } catch (Exception e) {
@@ -609,6 +568,8 @@ System.out.println("执行:" + major + ", fileId=" + fileId);
 
         case IRP_MJ_CLOSE:
             status = device.close(fileId);
+            buffer = new byte[1];
+            buffer_len = 1;
             break;
 
         case IRP_MJ_READ:
@@ -649,12 +610,16 @@ System.out.println("执行:" + major + ", fileId=" + fileId);
                     bout.flush();
                     
                     buffer = bout.toByteArray();
+                    result = buffer[0] + (buffer[1] << 8) + (buffer[2] << 16) + (buffer[3] << 24);
+                    buffer_len = 1;
+                    buffer = new byte[1];
                 } catch (IOException e) {
                     status = RD_STATUS_INVALID_PARAMETER;
+                    result = 0;
+                    buffer_len = 1;
+                    buffer = new byte[1];
                     e.printStackTrace();
                 }
-                
-                result = buffer_len = buffer.length;
             } else {
                 status = RD_STATUS_NOT_SUPPORTED;
             }
@@ -758,7 +723,9 @@ System.out.println("执行:" + major + ", fileId=" + fileId);
         default:
             break;
         }
-        rdpdr_send_completion(deviceid, completionId, status, result, buffer, buffer_len);
+        if (status != RD_STATUS_PENDING) {
+            rdpdr_send_completion(deviceid, completionId, status, result, buffer, buffer_len);
+        }
     }
 
     void rdpdr_send_completion(int deviceId, int completionId, int status, int result,
@@ -777,18 +744,21 @@ System.out.println("执行:" + major + ", fileId=" + fileId);
         }
         s.markEnd();
 
-        int size = s.capacity();
-        int position = s.getPosition();
-        byte[] dump = new byte[size];
-        s.copyToByteArray(dump, 0, 0, 20 + length);
-        System.out.println("--> rdpdr_send_completion");
-        System.out.println(HexDump.dumpHexString(dump));
-        
         try {
             this.send_packet(s);
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+    
+    public void send_packet(RdpPacket_Localised s) throws RdesktopException, IOException, CryptoException {
+        super.send_packet(s);
+
+        int size = s.capacity();
+        byte[] dump = new byte[size];
+        s.copyToByteArray(dump, 0, 0, s.size());
+        System.out.print("\n"+(send_packet_index++)+"=======================>>>>>>>> data sent");
+        System.out.println(HexDump.dumpHexString(dump));
     }
 
 }

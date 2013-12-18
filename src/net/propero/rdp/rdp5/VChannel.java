@@ -117,7 +117,7 @@ public abstract class VChannel {
 	 * @throws IOException
 	 * @throws CryptoException
 	 */
-	public void send_packet(RdpPacket_Localised data) throws RdesktopException,
+	public synchronized void send_packet(RdpPacket_Localised data) throws RdesktopException,
 			IOException, CryptoException {
 		if (Common.secure == null)
 			return;
@@ -125,8 +125,8 @@ public abstract class VChannel {
 
 		int data_offset = 0;
 		int packets_sent = 0;
-		int num_packets = (length / VChannels.CHANNEL_CHUNK_LENGTH);
-		num_packets += length - (VChannels.CHANNEL_CHUNK_LENGTH) * num_packets;
+//		int num_packets = (length / VChannels.CHANNEL_CHUNK_LENGTH);
+//		num_packets += length - (VChannels.CHANNEL_CHUNK_LENGTH) * num_packets;
 
 		while (data_offset < length) {
 
