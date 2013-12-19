@@ -99,8 +99,12 @@ public class Secure {
 	boolean licenceIssued = false;
 
 	private RC4 rc4_enc = null;
+	
+	private Object rc4_enc_lock = new Object();
 
 	private RC4 rc4_dec = null;
+
+	private Object rc4_dec_lock = new Object();
 
 	private RC4 rc4_update = null;
 
@@ -661,20 +665,22 @@ public class Secure {
 	 * @throws CryptoException
 	 */
 	public byte[] encrypt(byte[] data, int length) throws CryptoException {
-		byte[] buffer = null;
-		if (this.enc_count == 4096) {
-			sec_encrypt_key = this.update(this.sec_encrypt_key,
-					this.sec_encrypt_update_key);
-			byte[] key = new byte[this.keylength];
-			System.arraycopy(this.sec_encrypt_key, 0, key, 0, this.keylength);
-			this.rc4_enc.engineInitEncrypt(key);
-			// logger.debug("Packet enc_count="+enc_count);
-			this.enc_count = 0;
-		}
-		// this.rc4.engineInitEncrypt(this.rc4_encrypt_key);
-		buffer = this.rc4_enc.crypt(data, 0, length);
-		this.enc_count++;
-		return buffer;
+	    synchronized (rc4_enc_lock) {
+	        byte[] buffer = null;
+	        if (this.enc_count == 4096) {
+	            sec_encrypt_key = this.update(this.sec_encrypt_key,
+	                    this.sec_encrypt_update_key);
+	            byte[] key = new byte[this.keylength];
+	            System.arraycopy(this.sec_encrypt_key, 0, key, 0, this.keylength);
+	            this.rc4_enc.engineInitEncrypt(key);
+	            // logger.debug("Packet enc_count="+enc_count);
+	            this.enc_count = 0;
+	        }
+	        // this.rc4.engineInitEncrypt(this.rc4_encrypt_key);
+	        buffer = this.rc4_enc.crypt(data, 0, length);
+	        this.enc_count++;
+	        return buffer;
+        }
 	}
 
 	/**
@@ -686,21 +692,23 @@ public class Secure {
 	 * @throws CryptoException
 	 */
 	public byte[] encrypt(byte[] data) throws CryptoException {
-		byte[] buffer = null;
-		if (this.enc_count == 4096) {
-			sec_encrypt_key = this.update(this.sec_encrypt_key,
-					this.sec_encrypt_update_key);
-			byte[] key = new byte[this.keylength];
-			System.arraycopy(this.sec_encrypt_key, 0, key, 0, this.keylength);
-			this.rc4_enc.engineInitEncrypt(key);
-			// logger.debug("Packet enc_count="+enc_count);
-			this.enc_count = 0;
-		}
-		// this.rc4.engineInitEncrypt(this.rc4_encrypt_key);
-
-		buffer = this.rc4_enc.crypt(data);
-		this.enc_count++;
-		return buffer;
+	    synchronized (rc4_enc_lock) {
+	        byte[] buffer = null;
+	        if (this.enc_count == 4096) {
+	            sec_encrypt_key = this.update(this.sec_encrypt_key,
+	                    this.sec_encrypt_update_key);
+	            byte[] key = new byte[this.keylength];
+	            System.arraycopy(this.sec_encrypt_key, 0, key, 0, this.keylength);
+	            this.rc4_enc.engineInitEncrypt(key);
+	            // logger.debug("Packet enc_count="+enc_count);
+	            this.enc_count = 0;
+	        }
+	        // this.rc4.engineInitEncrypt(this.rc4_encrypt_key);
+	        
+	        buffer = this.rc4_enc.crypt(data);
+	        this.enc_count++;
+	        return buffer;
+        }
 	}
 
 	/**
@@ -714,20 +722,22 @@ public class Secure {
 	 * @throws CryptoException
 	 */
 	public byte[] decrypt(byte[] data, int length) throws CryptoException {
-		byte[] buffer = null;
-		if (this.dec_count == 4096) {
-			sec_decrypt_key = this.update(this.sec_decrypt_key,
-					this.sec_decrypt_update_key);
-			byte[] key = new byte[this.keylength];
-			System.arraycopy(this.sec_decrypt_key, 0, key, 0, this.keylength);
-			this.rc4_dec.engineInitDecrypt(key);
-			// logger.debug("Packet dec_count="+dec_count);
-			this.dec_count = 0;
-		}
-		// this.rc4.engineInitDecrypt(this.rc4_decrypt_key);
-		buffer = this.rc4_dec.crypt(data, 0, length);
-		this.dec_count++;
-		return buffer;
+	    synchronized (rc4_dec_lock) {
+	        byte[] buffer = null;
+	        if (this.dec_count == 4096) {
+	            sec_decrypt_key = this.update(this.sec_decrypt_key,
+	                    this.sec_decrypt_update_key);
+	            byte[] key = new byte[this.keylength];
+	            System.arraycopy(this.sec_decrypt_key, 0, key, 0, this.keylength);
+	            this.rc4_dec.engineInitDecrypt(key);
+	            // logger.debug("Packet dec_count="+dec_count);
+	            this.dec_count = 0;
+	        }
+	        // this.rc4.engineInitDecrypt(this.rc4_decrypt_key);
+	        buffer = this.rc4_dec.crypt(data, 0, length);
+	        this.dec_count++;
+	        return buffer;
+        }
 	}
 
 	/**
@@ -739,21 +749,23 @@ public class Secure {
 	 * @throws CryptoException
 	 */
 	public byte[] decrypt(byte[] data) throws CryptoException {
-		byte[] buffer = null;
-		if (this.dec_count == 4096) {
-			sec_decrypt_key = this.update(this.sec_decrypt_key,
-					this.sec_decrypt_update_key);
-			byte[] key = new byte[this.keylength];
-			System.arraycopy(this.sec_decrypt_key, 0, key, 0, this.keylength);
-			this.rc4_dec.engineInitDecrypt(key);
-			// logger.debug("Packet dec_count="+dec_count);
-			this.dec_count = 0;
-		}
-		// this.rc4.engineInitDecrypt(this.rc4_decrypt_key);
-
-		buffer = this.rc4_dec.crypt(data);
-		this.dec_count++;
-		return buffer;
+	    synchronized (rc4_dec_lock) {
+	        byte[] buffer = null;
+	        if (this.dec_count == 4096) {
+	            sec_decrypt_key = this.update(this.sec_decrypt_key,
+	                    this.sec_decrypt_update_key);
+	            byte[] key = new byte[this.keylength];
+	            System.arraycopy(this.sec_decrypt_key, 0, key, 0, this.keylength);
+	            this.rc4_dec.engineInitDecrypt(key);
+	            // logger.debug("Packet dec_count="+dec_count);
+	            this.dec_count = 0;
+	        }
+	        // this.rc4.engineInitDecrypt(this.rc4_decrypt_key);
+	        
+	        buffer = this.rc4_dec.crypt(data);
+	        this.dec_count++;
+	        return buffer;
+        }
 	}
 
 	/**

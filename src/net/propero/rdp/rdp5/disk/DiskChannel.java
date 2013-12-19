@@ -1,7 +1,5 @@
 package net.propero.rdp.rdp5.disk;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
@@ -43,10 +41,15 @@ public class DiskChannel extends VChannel implements DiskConst {
     public String name() {
         return "rdpdr";
     }
+    
+    @Override
+    public boolean mustEncrypt() {
+        return versionMinor != 0x0C;
+    }
 
     @Override
     public int flags() {
-        return VChannels.CHANNEL_OPTION_INITIALIZED | VChannels.CHANNEL_OPTION_ENCRYPT_RDP
+        return VChannels.CHANNEL_OPTION_INITIALIZED /*| VChannels.CHANNEL_OPTION_ENCRYPT_RDP*/
                 | VChannels.CHANNEL_OPTION_COMPRESS_RDP;
     }
     
@@ -57,11 +60,19 @@ public class DiskChannel extends VChannel implements DiskConst {
     public void process(RdpPacket data) throws RdesktopException, IOException,
             CryptoException {
         int size = data.size();
+        boolean mark = false;
+        if(size > 0x60) {
+            size = 0x60;
+            mark = true;
+        }
         int position = data.getPosition();
-        byte[] dump = new byte[size];
+        byte[] dump = new byte[size-position];
         data.copyToByteArray(dump, 0, position, size-position);
         System.out.print("\n"+(receive_packet_index++)+"------------------->>>>>>>>>>>>>>> data recieved.");
         System.out.println(HexDump.dumpHexString(dump));
+        if(mark) {
+            System.out.println(".....");
+        }
         
         int component = data.getLittleEndian16();
         int packetId = data.getLittleEndian16();
@@ -289,10 +300,10 @@ public class DiskChannel extends VChannel implements DiskConst {
         Device device = devices.get(deviceId);
 
         if(device != null) {
-            ByteArrayOutputStream bout = new ByteArrayOutputStream();
-            DataOutputStream out = new DataOutputStream(bout);
-            
-            IRP irp = new IRP(fileId, majorFunction, minorFunction, out);
+            IRP irp = new IRP(fileId, majorFunction, minorFunction);
+            irp.deviceId = deviceId;
+            irp.completionId = completionId;
+            irp.data = data;
             
             byte[] buffer = null;
             
@@ -300,9 +311,13 @@ public class DiskChannel extends VChannel implements DiskConst {
             
             try {
                 ioStatus = device.process(data, irp);
-                out.flush();
-                bout.flush();
-                buffer = bout.toByteArray();
+                if(ioStatus != RD_STATUS_PENDING) {
+                    irp.out.flush();
+                    irp.bout.flush();
+                    buffer = irp.bout.toByteArray();
+                } else {
+                    buffer = empty_buffer;
+                }
             } catch (IOException e) {
                 e.printStackTrace();
                 buffer = empty_buffer;
@@ -310,15 +325,18 @@ public class DiskChannel extends VChannel implements DiskConst {
             
             if(ioStatus != RD_STATUS_PENDING) {
                 //device i/o response header
-                RdpPacket_Localised s = new RdpPacket_Localised(16 + buffer.length);
+                RdpPacket_Localised s = new RdpPacket_Localised(16 + (ioStatus == RD_STATUS_CANCELLED ? 4 : buffer.length));
                 s.setLittleEndian16(RDPDR_CTYP_CORE);// PAKID_CORE_DEVICE_REPLY?
                 s.setLittleEndian16(PAKID_CORE_DEVICE_IOCOMPLETION);
                 s.setLittleEndian32(deviceId);
                 s.setLittleEndian32(completionId);
                 s.setLittleEndian32(ioStatus);
-                
-                if(buffer.length > 0) {
-                    s.copyFromByteArray(buffer, 0, s.getPosition(), buffer.length);
+                if(ioStatus == RD_STATUS_CANCELLED) {
+                    s.setLittleEndian32(0);
+                } else {
+                    if(buffer.length > 0) {
+                        s.copyFromByteArray(buffer, 0, s.getPosition(), buffer.length);
+                    }
                 }
                 
                 s.markEnd();
@@ -335,11 +353,19 @@ public class DiskChannel extends VChannel implements DiskConst {
     public void send_packet(RdpPacket_Localised s) throws RdesktopException, IOException, CryptoException {
         super.send_packet(s);
 
-        int size = s.capacity();
+        int size = s.size();
+        boolean mark = false;
+        if(size > 0x60) {
+            size = 0x60;
+            mark = true;
+        }
         byte[] dump = new byte[size];
-        s.copyToByteArray(dump, 0, 0, s.size());
+        s.copyToByteArray(dump, 0, 0, size);
         System.out.print("\n"+(send_packet_index++)+"=======================>>>>>>>> data sent");
         System.out.println(HexDump.dumpHexString(dump));
+        if(mark) {
+            System.out.println(".....");
+        }
     }
 
 }

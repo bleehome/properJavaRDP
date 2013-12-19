@@ -62,6 +62,10 @@ public abstract class VChannel {
 	 * @return Option flags
 	 */
 	public abstract int flags();
+	
+	public boolean mustEncrypt() {
+	    return false;
+	}
 
 	/**
 	 * Process a packet sent on this channel
@@ -134,7 +138,7 @@ public abstract class VChannel {
 					- data_offset);
 
 			RdpPacket_Localised s = Common.secure.init(
-					Constants.encryption ? Secure.SEC_ENCRYPT : 0,
+			        (mustEncrypt() && Constants.encryption) ? Secure.SEC_ENCRYPT : 0,
 					8 + thisLength);
 			s.setLittleEndian32(length);
 
@@ -154,7 +158,7 @@ public abstract class VChannel {
 
 			if (Common.secure != null)
 				Common.secure.send_to_channel(s,
-						Constants.encryption ? Secure.SEC_ENCRYPT : 0, this
+				        (mustEncrypt() && Constants.encryption) ? Secure.SEC_ENCRYPT : 0, this
 								.mcs_id());
 			packets_sent++;
 		}

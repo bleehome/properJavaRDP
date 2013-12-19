@@ -178,11 +178,19 @@ public class RdpdrChannel extends VChannel {
     public void process(RdpPacket data) throws RdesktopException, IOException,
             CryptoException {
         int size = data.size();
+        boolean mark = false;
+        if(size > 0x60) {
+            size = 0x60;
+            mark = true;
+        }
         int position = data.getPosition();
-        byte[] dump = new byte[size];
+        byte[] dump = new byte[size-position];
         data.copyToByteArray(dump, 0, position, size-position);
         System.out.print("\n"+(receive_packet_index++)+"------------------->>>>>>>>>>>>>>> data recieved.");
         System.out.println(HexDump.dumpHexString(dump));
+        if(mark) {
+            System.out.println(".....");
+        }
         
         int component = data.getLittleEndian16();
         int packetID = data.getLittleEndian16();
@@ -752,13 +760,21 @@ System.out.println("执行:" + major + ", fileId=" + fileId);
     }
     
     public void send_packet(RdpPacket_Localised s) throws RdesktopException, IOException, CryptoException {
-        super.send_packet(s);
-
-        int size = s.capacity();
+        int size = s.size();
+        boolean mark = false;
+        if(size > 0x60) {
+            size = 0x60;
+            mark = true;
+        }
         byte[] dump = new byte[size];
-        s.copyToByteArray(dump, 0, 0, s.size());
+        s.copyToByteArray(dump, 0, 0, size);
         System.out.print("\n"+(send_packet_index++)+"=======================>>>>>>>> data sent");
         System.out.println(HexDump.dumpHexString(dump));
+        if(mark) {
+            System.out.println(".....");
+        }
+        
+        super.send_packet(s);
     }
 
 }

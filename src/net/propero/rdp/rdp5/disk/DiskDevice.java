@@ -10,8 +10,11 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import net.propero.rdp.RdpPacket;
+import net.propero.rdp.RdpPacket_Localised;
 import net.propero.rdp.rdp5.VChannel;
 import net.propero.rdp.tools.FNMatch;
 
@@ -24,14 +27,21 @@ public class DiskDevice implements Device, DiskConst {
     
     private int id_sequence = 1;
     
+    private BlockingQueue<IRP> irps;
+    
+    private boolean running = true;
+    
     private Map<Integer, DriveFile> files;
-
+    
     public DiskDevice(String diskName, String basePath) {
         super();
         this.diskName = diskName;
         this.basePath = basePath;
         
         files = new HashMap<Integer, DiskDevice.DriveFile>();
+        irps = new LinkedBlockingQueue<IRP>();
+        Thread t = new Thread(new ProcessThread(), "DiskDevice_Thread_" + this.hashCode());
+        t.start();
     }
 
     @Override
@@ -58,6 +68,21 @@ public class DiskDevice implements Device, DiskConst {
         } else {
             System.out.println();
         }
+        
+        switch(irp.majorFunction) {
+        case IRP_MJ_READ:
+        case IRP_MJ_WRITE:
+            if(irps.offer(irp)) {
+                return RD_STATUS_PENDING;
+            } else {
+                return RD_STATUS_CANCELLED;
+            }
+        default:
+            return process0(data, irp);
+        }
+    }
+    
+    private int process0(RdpPacket data, IRP irp) throws IOException {
         int status;
         switch(irp.majorFunction) {
         case IRP_MJ_CREATE:
@@ -747,6 +772,55 @@ public class DiskDevice implements Device, DiskConst {
             return null;
         }
         return df;
+    }
+    
+    private class ProcessThread implements Runnable {
+        @Override
+        public void run() {
+            try {
+                while(running) {
+                    IRP irp = irps.take();
+                    if(irp != null) {
+                        callProcess0(irp);
+                    }
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+    
+    private void callProcess0(IRP irp) {
+        int ioStatus = 0;
+        byte[] buffer = null;
+        try {
+            ioStatus = process0(irp.data, irp);
+            irp.out.flush();
+            irp.bout.flush();
+            buffer = irp.bout.toByteArray();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        if(ioStatus != RD_STATUS_PENDING) {
+            //device i/o response header
+            RdpPacket_Localised s = new RdpPacket_Localised(16 + buffer.length);
+            s.setLittleEndian16(RDPDR_CTYP_CORE);// PAKID_CORE_DEVICE_REPLY?
+            s.setLittleEndian16(PAKID_CORE_DEVICE_IOCOMPLETION);
+            s.setLittleEndian32(irp.deviceId);
+            s.setLittleEndian32(irp.completionId);
+            s.setLittleEndian32(ioStatus);
+            
+            if(buffer.length > 0) {
+                s.copyFromByteArray(buffer, 0, s.getPosition(), buffer.length);
+            }
+            
+            s.markEnd();
+            try {
+                this.channel.send_packet(s);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
     
     private boolean drive_file_init(DriveFile df, int desiredAccess, int createDisposition, int createOptions) throws IOException {
