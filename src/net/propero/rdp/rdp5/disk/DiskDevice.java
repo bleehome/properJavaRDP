@@ -230,9 +230,12 @@ public class DiskDevice implements Device, DiskConst {
         try {
             RandomAccessFile raf = df.getRAF(true);
             raf.seek(offset);
-            for(int l = 0; l < length; l++) {
-                raf.write(data.get8());
-            }
+            byte[] bf = new byte[length];
+            data.copyToByteArray(bf, 0, data.getPosition(), length);
+            raf.write(bf);
+//            for(int l = 0; l < length; l++) {
+//                raf.write(data.get8());
+//            }
             writeIntLe(out, length);
             out.write(0);
         } catch (FileNotFoundException e) {
