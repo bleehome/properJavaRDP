@@ -138,7 +138,7 @@ public abstract class VChannel {
 					- data_offset);
 
 			RdpPacket_Localised s = Common.secure.init(
-			        (mustEncrypt() && Constants.encryption) ? Secure.SEC_ENCRYPT : 0,
+			        (Constants.encryption) ? Secure.SEC_ENCRYPT : 0,
 					8 + thisLength);
 			s.setLittleEndian32(length);
 
@@ -158,7 +158,7 @@ public abstract class VChannel {
 
 			if (Common.secure != null)
 				Common.secure.send_to_channel(s,
-				        (mustEncrypt() && Constants.encryption) ? Secure.SEC_ENCRYPT : 0, this
+				        (Constants.encryption) ? Secure.SEC_ENCRYPT : 0, this
 								.mcs_id());
 			packets_sent++;
 		}

@@ -44,7 +44,7 @@ public class Options {
 	// disables bandwidth saving tcp packets
 	public static boolean low_latency = true;
 
-	public static int keylayout = 0x809; // UK by default
+	public static int keylayout = 0x409; // UK by default
 
 	public static String username = "Administrator"; // -u username
 
@@ -60,9 +60,9 @@ public class Options {
 
 	public static String windowTitle = "properJavaRDP"; // -T windowTitle
 
-	public static int width = 800; // -g widthxheight
+	public static int width = 1024; // -g widthxheight
 
-	public static int height = 600; // -g widthxheight
+	public static int height = 768; // -g widthxheight
 
 	public static int port = 3389; // -t port
 
@@ -132,11 +132,11 @@ public class Options {
 
 	public static boolean persistent_bitmap_caching = false;
 
-	public static boolean bitmap_caching = false;
+	public static boolean bitmap_caching = true;
 
 	public static boolean precache_bitmaps = false;
 
-	public static boolean polygon_ellipse_orders = false;
+	public static boolean polygon_ellipse_orders = true;
 
 	public static boolean sendmotion = true;
 

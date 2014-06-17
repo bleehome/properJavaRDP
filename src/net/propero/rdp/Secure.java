@@ -36,6 +36,8 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.StringTokenizer;
 
 import net.propero.rdp.crypto.CryptoException;
@@ -91,6 +93,16 @@ public class Secure {
 	private static final int SEC_TAG_KEYSIG = 0x0008;
 
 	private static final int SEC_RSA_MAGIC = 0x31415352; /* RSA1 */
+	
+	private static final int SEC_CC_REDIRECTION_SUPPORTED = 0x00000001;
+	private static final int SEC_CC_REDIRECT_SESSIONID_FIELD_VALID = 0x00000002;
+	private static final int SEC_CC_REDIRECTED_SMARTCARD = 0x00000040;
+	private static final int SEC_CC_REDIRECT_VERSION_MASK = 0x0000003c;
+
+	private static final int SEC_CC_REDIRECT_VERSION_3 = 0x02;
+	private static final int SEC_CC_REDIRECT_VERSION_4 = 0x03;
+	private static final int SEC_CC_REDIRECT_VERSION_5 = 0x04;
+	private static final int SEC_CC_REDIRECT_VERSION_6 = 0x05;
 
 	private MCS McsLayer = null;
 
@@ -263,9 +275,7 @@ public class Secure {
 			hostlen = 30;
 		}
 
-		int length = 158;
-		if (Options.use_rdp5)
-			length += 76 + 12 + 4;
+		int length = 162 + 76 + 12 + 4;
 
 		if (Options.use_rdp5 && (channels.num_channels() > 0))
 			length += channels.num_channels() * 12 + 8;
@@ -288,7 +298,7 @@ public class Secure {
 
 		// Client information
 		buffer.setLittleEndian16(SEC_TAG_CLI_INFO);
-		buffer.setLittleEndian16(Options.use_rdp5 ? 212 : 136); // length
+		buffer.setLittleEndian16(216); // length
 		buffer.setLittleEndian16(Options.use_rdp5 ? 4 : 1);
 		buffer.setLittleEndian16(8);
 		buffer.setLittleEndian16(Options.width);
@@ -296,7 +306,7 @@ public class Secure {
 		buffer.setLittleEndian16(0xca01);
 		buffer.setLittleEndian16(0xaa03);
 		buffer.setLittleEndian32(Options.keylayout);
-		buffer.setLittleEndian32(Options.use_rdp5 ? 2600 : 419); // or 0ece
+		buffer.setLittleEndian32(2600); // or 0ece
 		// // client
 		// build? we
 		// are 2600
@@ -304,7 +314,7 @@ public class Secure {
 		// :-)
 
 		/* Unicode name of client, padded to 32 bytes */
-		buffer.outUnicodeString(Options.hostname.toUpperCase(), hostlen);
+		buffer.outUnicodeString(Options.hostname, hostlen);
 		buffer.incrementPosition(30 - hostlen);
 
 		buffer.setLittleEndian32(4);
@@ -313,54 +323,39 @@ public class Secure {
 		buffer.incrementPosition(64); /* reserved? 4 + 12 doublewords */
 
 		buffer.setLittleEndian16(0xca01); // out_uint16_le(s, 0xca01);
-		buffer.setLittleEndian16(Options.use_rdp5 ? 1 : 0);
+		buffer.setLittleEndian16(1);
 
-		if (Options.use_rdp5) {
-			buffer.setLittleEndian32(0); // out_uint32(s, 0);
-			buffer.set8(Options.server_bpp); // out_uint8(s, g_server_bpp);
-			buffer.setLittleEndian16(0x0700); // out_uint16_le(s, 0x0700);
-			buffer.set8(0); // out_uint8(s, 0);
-			buffer.setLittleEndian32(1); // out_uint32_le(s, 1);
+		buffer.setLittleEndian32(0); // out_uint32(s, 0);
+		buffer.set8(Options.server_bpp); // out_uint8(s, g_server_bpp);
+		buffer.setLittleEndian16(0x0700); // out_uint16_le(s, 0x0700);
+		buffer.set8(0); // out_uint8(s, 0);
+		buffer.setLittleEndian32(1); // out_uint32_le(s, 1);
+		buffer.incrementPosition(64);
+		buffer.setLittleEndian32(0);//selected_protocol /* End of client info */
 
-			buffer.incrementPosition(64);
-
-			buffer.setLittleEndian16(SEC_TAG_CLI_4); // out_uint16_le(s,
-			// SEC_TAG_CLI_4);
-			buffer.setLittleEndian16(12); // out_uint16_le(s, 12);
-			buffer.setLittleEndian32(Options.console_session ? 0xb : 0xd); // out_uint32_le(s,
-			// g_console_session
-			// ?
-			// 0xb
-			// :
-			// 9);
-			buffer.setLittleEndian32(0); // out_uint32(s, 0);
-		}
+		buffer.setLittleEndian16(SEC_TAG_CLI_4); // out_uint16_le(s, SEC_TAG_CLI_4);
+		buffer.setLittleEndian16(12); // out_uint16_le(s, 12);
+		
+		int cluster_flags = 0;
+		cluster_flags |= SEC_CC_REDIRECTION_SUPPORTED;
+	    cluster_flags |= (SEC_CC_REDIRECT_VERSION_3 << 2);
+	    if(Options.console_session) {
+	        cluster_flags |= SEC_CC_REDIRECT_SESSIONID_FIELD_VALID;
+	    }
+		buffer.setLittleEndian32(cluster_flags); // out_uint32_le(s,
+		buffer.setLittleEndian32(0); // redirect session id?
 
 		// Client encryption settings //
 		buffer.setLittleEndian16(SEC_TAG_CLI_CRYPT);
-		buffer.setLittleEndian16(Options.use_rdp5 ? 12 : 8); // length
-
-		// if(Options.use_rdp5) buffer.setLittleEndian32(Options.encryption ?
-		// 0x1b : 0); // 128-bit encryption supported
-		// else
-		buffer
-				.setLittleEndian32(Options.encryption ? (Options.console_session ? 0xb
-						: 0x3)
-						: 0);
-
-		if (Options.use_rdp5)
-			buffer.setLittleEndian32(0); // unknown
+		buffer.setLittleEndian16(12); // length
+		buffer.setLittleEndian32(Options.encryption ? 0x3 : 0);
+		buffer.setLittleEndian32(0); // unknown
 
 		if (Options.use_rdp5 && (channels.num_channels() > 0)) {
 			logger.debug(("num_channels is " + channels.num_channels()));
 			buffer.setLittleEndian16(SEC_TAG_CLI_CHANNELS); // out_uint16_le(s,
 			// SEC_TAG_CLI_CHANNELS);
 			buffer.setLittleEndian16(channels.num_channels() * 12 + 8); // out_uint16_le(s,
-			// g_num_channels
-			// * 12
-			// + 8);
-			// //
-			// length
 			buffer.setLittleEndian32(channels.num_channels()); // out_uint32_le(s,
 			// g_num_channels);
 			// // number of
@@ -581,12 +576,21 @@ public class Secure {
 		byte[] signature = null;
 		byte[] data;
 		byte[] buffer;
-
+		
 		sec_data.setPosition(sec_data.getHeader(RdpPacket.SECURE_HEADER));
 
 		if (this.licenceIssued == false || (flags & SEC_ENCRYPT) != 0) {
 			sec_data.setLittleEndian32(flags);
 		}
+		
+		if (Options.debug_hexdump) {
+            int length = sec_data.getEnd() - sec_data.getPosition();
+            byte[] packet = new byte[length];
+            sec_data.copyToByteArray(packet, 0, sec_data.getPosition(), sec_data.getEnd() - sec_data.getPosition());
+            System.out.println("Sending packet:");
+            System.out.println(net.propero.rdp.tools.HexDump.dumpHexString(packet));
+        }
+		
 		if ((flags & SEC_ENCRYPT) != 0) {
 			flags &= ~SEC_ENCRYPT;
 			datalength = sec_data.getEnd() - sec_data.getPosition() - 8;
@@ -888,12 +892,15 @@ public class Secure {
 	 * bIn.reset(); return cert; }
 	 */
 	public void generateRandom() {
-		/*
-		 * try{ SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
-		 * random.nextBytes(this.client_random); }
-		 * catch(NoSuchAlgorithmException e){logger.warn("No Such Random
-		 * Algorithm");}
-		 */
+		
+        try {
+            SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
+            random.nextBytes(this.sec_crypted_random);
+            random.nextBytes(this.client_random);
+        } catch (NoSuchAlgorithmException e) {
+            logger.warn("No Such Random Algorithm");
+        }
+		
 	}
 
 	public void RSAEncrypt(int length, int modulus_size)

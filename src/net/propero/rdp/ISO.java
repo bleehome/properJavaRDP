@@ -201,8 +201,11 @@ public abstract class ISO {
 			buffer.set8(DATA_TRANSFER);
 			buffer.set8(EOT);
 			buffer.copyToByteArray(packet, 0, 0, buffer.getEnd());
-			if (Options.debug_hexdump)
-				dump.encode(packet, "SEND"/* System.out */);
+			
+			if (Options.debug_hexdump) {
+	            System.out.println("ISO Sending packet:");
+	            System.out.println(net.propero.rdp.tools.HexDump.dumpHexString(packet));
+	        }
 			
 			out.write(packet);
 			out.flush();
@@ -231,6 +234,7 @@ public abstract class ISO {
 		return buffer;
 	}
 
+	private static int g_packetno = 0;
 	/**
 	 * Receive a specified number of bytes from the server, and store in a
 	 * packet
@@ -255,8 +259,11 @@ public abstract class ISO {
 		// try{ }
 		// catch(IOException e){ logger.warn("IOException: " + e.getMessage());
 		// return null; }
-		if (Options.debug_hexdump)
-			dump.encode(packet, "RECEIVE" /* System.out */);
+		if (Options.debug_hexdump) {
+//		    dump.encode(packet, "RECEIVE" /* System.out */);
+		    System.out.println(String.format("\nISO receive RDP packet # %d", ++g_packetno));
+		    System.out.println(net.propero.rdp.tools.HexDump.dumpHexString(packet));
+		}
 
 		if (p == null) {
 			buffer = new RdpPacket_Localised(length);
@@ -376,11 +383,11 @@ public abstract class ISO {
 	void send_connection_request() throws IOException {
 
 		String uname = Options.username;
-		if (uname.length() > 9)
-			uname = uname.substring(0, 9);
+//		if (uname.length() > 9)
+//			uname = uname.substring(0, 9);
 		int length = 11 + (Options.username.length() > 0 ? ("Cookie: mstshash="
 				.length()
-				+ uname.length() + 2) : 0) + 8;
+				+ uname.length() + 2) : 0)/* + 8*/;
 		RdpPacket_Localised buffer = new RdpPacket_Localised(length);
 		byte[] packet = new byte[length];
 
@@ -410,8 +417,20 @@ public abstract class ISO {
 		 * buffer.set8(Options.use_ssl? 0x01 : 0x00);
 		 * buffer.incrementPosition(3);
 		 */
+//		buffer.set8(0x01);
+//		buffer.set8(0x00);
+//		buffer.setLittleEndian16(0x08);
+//		buffer.setLittleEndian32(0x01);
+		
 		buffer.copyToByteArray(packet, 0, 0, packet.length);
 		out.write(packet);
 		out.flush();
+		
+		if (Options.debug_hexdump) {
+//          dump.encode(packet, "SEND"/* System.out */);
+            System.out.println("ISO Sending packet:");
+            System.out.println(net.propero.rdp.tools.HexDump.dumpHexString(packet));
+        }
+		
 	}
 }

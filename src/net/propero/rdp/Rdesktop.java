@@ -204,6 +204,8 @@ public class Rdesktop {
 	static boolean keep_running;
 
 	static boolean loggedon;
+	
+	static int gReconnectLogonid = 0;
 
 	static boolean readytosend;
 
@@ -333,6 +335,7 @@ public class Rdesktop {
 		
 		DiskChannel diskChannel = new DiskChannel();
 		diskChannel.addDiskDevice("linux", "/home/blee/temp/rdptest");
+		diskChannel.addDiskDevice("tmp", "/dev/shm");
 		
 //		RdpdrChannel diskChannel = new RdpdrChannel();
 //		diskChannel.deviceRegister(new DiskRdpdrDevice("linux", "/home/blee/temp/rdptest"));

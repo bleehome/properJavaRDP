@@ -189,29 +189,29 @@ public class ClipChannel extends VChannel implements ClipInterface,
 	void send_format_announce() throws RdesktopException, IOException,
 			CryptoException {
 //		Transferable clipData = clipboard.getContents(clipboard);
-		DataFlavor[] dataTypes = clipboard.getAvailableDataFlavors();//clipData.getTransferDataFlavors();
-
-		TypeHandlerList availableFormats = allHandlers
-				.getHandlersForClipboard(dataTypes);
-
-		RdpPacket_Localised s;
-		int number_of_formats = availableFormats.count();
-
-		s = new RdpPacket_Localised(number_of_formats * 36 + 12);
-		s.setLittleEndian16(CLIPRDR_FORMAT_ANNOUNCE);
-		s.setLittleEndian16(CLIPRDR_REQUEST);
-		s.setLittleEndian32(number_of_formats * 36);
-
-		TypeHandler handler = null;
-		for (Iterator i = availableFormats.iterator(); i.hasNext();) {
-			handler = (TypeHandler) i.next();
-			s.setLittleEndian32(handler.preferredFormat());
-			s.incrementPosition(32);
-		}
-
-		s.setLittleEndian32(0); // pad
-		s.markEnd();
-		send_packet(s);
+//		DataFlavor[] dataTypes = clipboard.getAvailableDataFlavors();//clipData.getTransferDataFlavors();
+//
+//		TypeHandlerList availableFormats = allHandlers
+//				.getHandlersForClipboard(dataTypes);
+//
+//		RdpPacket_Localised s;
+//		int number_of_formats = availableFormats.count();
+//
+//		s = new RdpPacket_Localised(number_of_formats * 36 + 12);
+//		s.setLittleEndian16(CLIPRDR_FORMAT_ANNOUNCE);
+//		s.setLittleEndian16(CLIPRDR_REQUEST);
+//		s.setLittleEndian32(number_of_formats * 36);
+//
+//		TypeHandler handler = null;
+//		for (Iterator i = availableFormats.iterator(); i.hasNext();) {
+//			handler = (TypeHandler) i.next();
+//			s.setLittleEndian32(handler.preferredFormat());
+//			s.incrementPosition(32);
+//		}
+//
+//		s.setLittleEndian32(0); // pad
+//		s.markEnd();
+//		send_packet(s);
 	}
 
 	private void handle_clip_format_announce(RdpPacket data, int length)

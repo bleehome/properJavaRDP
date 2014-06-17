@@ -254,18 +254,19 @@ public class MCS {
 	 */
 	public void sendBerInteger(RdpPacket_Localised buffer, int value) {
 
-		int len = 1;
+//		int len = 1;
+//
+//		if (value > 0xff)
+//			len = 2;
 
-		if (value > 0xff)
-			len = 2;
+		sendBerHeader(buffer, BER_TAG_INTEGER, 2);
+		buffer.setBigEndian16(value);
 
-		sendBerHeader(buffer, BER_TAG_INTEGER, len);
-
-		if (value > 0xff) {
-			buffer.setBigEndian16(value);
-		} else {
-			buffer.set8(value);
-		}
+//		if (value > 0xff) {
+//			buffer.setBigEndian16(value);
+//		} else {
+//			buffer.set8(value);
+//		}
 
 	}
 
@@ -374,11 +375,11 @@ public class MCS {
 	public void sendDomainParams(RdpPacket_Localised buffer, int max_channels,
 			int max_users, int max_tokens, int max_pdusize) {
 
-		int size = BERIntSize(max_channels) + BERIntSize(max_users)
-				+ BERIntSize(max_tokens) + BERIntSize(1) + BERIntSize(0)
-				+ BERIntSize(1) + BERIntSize(max_pdusize) + BERIntSize(2);
+//		int size = BERIntSize(max_channels) + BERIntSize(max_users)
+//				+ BERIntSize(max_tokens) + BERIntSize(1) + BERIntSize(0)
+//				+ BERIntSize(1) + BERIntSize(max_pdusize) + BERIntSize(2);
 
-		sendBerHeader(buffer, TAG_DOMAIN_PARAMS, size);
+		sendBerHeader(buffer, TAG_DOMAIN_PARAMS, 32);
 		sendBerInteger(buffer, max_channels);
 		sendBerInteger(buffer, max_users);
 		sendBerInteger(buffer, max_tokens);
@@ -403,36 +404,12 @@ public class MCS {
 	public void sendConnectInitial(RdpPacket_Localised data)
 			throws IOException, RdesktopException {
 		logger.debug("MCS.sendConnectInitial");
-		if (false) {
-			int length = 7 + (3 * 34) + 4 + data.getEnd();
-			RdpPacket_Localised buffer = IsoLayer.init(length + 5);
 
-			sendBerHeader(buffer, CONNECT_INITIAL, length);
-			sendBerHeader(buffer, BER_TAG_OCTET_STRING, 0); // calling domain
-			sendBerHeader(buffer, BER_TAG_OCTET_STRING, 0); // called domain
-
-			sendBerHeader(buffer, BER_TAG_BOOLEAN, 1);
-			buffer.set8(255); // upward flag
-
-			sendDomainParams(buffer, 2, 2, 0, 0xffff); // target parameters
-			sendDomainParams(buffer, 1, 1, 1, 0x420); // minimun parameters
-			sendDomainParams(buffer, 0xffff, 0xfc17, 0xffff, 0xffff); // maximum
-			// parameters
-
-			sendBerHeader(buffer, BER_TAG_OCTET_STRING, data.getEnd());
-
-			data.copyToPacket(buffer, 0, buffer.getPosition(), data.getEnd());
-			buffer.incrementPosition(data.getEnd());
-			buffer.markEnd();
-			IsoLayer.send(buffer);
-			return;
-		}
-
-		logger.debug("MCS.sendConnectInitial");
 		int datalen = data.getEnd();
-		int length = 9 + domainParamSize(34, 2, 0, 0xffff)
-				+ domainParamSize(1, 1, 1, 0x420)
-				+ domainParamSize(0xffff, 0xfc17, 0xffff, 0xffff) + 4 + datalen; // RDP5
+//		int length = 9 + domainParamSize(34, 2, 0, 0xffff)
+//				+ domainParamSize(1, 1, 1, 0x420)
+//				+ domainParamSize(0xffff, 0xfc17, 0xffff, 0xffff) + 4 + datalen; // RDP5
+		int length = 9 + 3 * 34 + 4 + datalen;
 		// Code
 
 		RdpPacket_Localised buffer = IsoLayer.init(length + 5);

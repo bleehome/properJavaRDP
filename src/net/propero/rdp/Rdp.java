@@ -214,9 +214,17 @@ public class Rdp {
 	public static final int BMPCACHE2_NUM_PSTCELLS = 0x9f6;
 
 	private static final int RDP5_FLAG = 0x0030;
+	
+    private static final int INFOTYPE_LOGON = 0;
+    private static final int INFOTYPE_LOGON_LONG = 1;
+    private static final int INFOTYPE_LOGON_PLAINNOTIFY = 2;
+    private static final int INFOTYPE_LOGON_EXTENDED_INF = 3;
+    
+    private static final int LOGON_EX_AUTORECONNECTCOOKIE = 1;
+    private static final int LOGON_EX_LOGONERRORS = 2;
 
 	private static final byte[] RDP_SOURCE = { (byte) 0x4D, (byte) 0x53,
-			(byte) 0x54, (byte) 0x53, (byte) 0x43, (byte) 0x00 }; // string
+			(byte) 0x54, (byte) 0x53, (byte) 0x43, (byte) 0x00}; // string
 
 	// MSTSC
 	// encoded
@@ -398,6 +406,31 @@ public class Rdp {
 			data.setPosition(next);
 		}
 	}
+	
+	protected void processPduLogon(RdpPacket_Localised data) {
+	    int infoType = data.getLittleEndian32();
+	    if (infoType == INFOTYPE_LOGON_EXTENDED_INF) {
+	        data.getLittleEndian16();
+	        int fieldsPresent = data.getLittleEndian32();
+	        if ((fieldsPresent & LOGON_EX_AUTORECONNECTCOOKIE) != 0) {
+	            data.getLittleEndian32();//cbFieldData
+	            int len = data.getLittleEndian32();
+	            int version = 0;
+	            if (len != 28) {
+	                logger.warn("Invalid length in Auto-Reconnect packet\n");
+	                return;
+	            }
+	            version = data.getLittleEndian32();
+	            if (version != 1) {
+	                logger.warn("Unsupported version of Auto-Reconnect packet\n");
+	                return;
+	            }
+	            Rdesktop.gReconnectLogonid = data.getLittleEndian32();
+	            data.incrementPosition(16);
+	            //...
+	        }
+	    }
+	}
 
 	/**
 	 * Process a disconnect PDU
@@ -515,9 +548,16 @@ public class Rdp {
 			return stream;
 		}
 		type[0] = this.stream.getLittleEndian16() & 0xf;
-		if (stream.getPosition() != stream.getEnd()) {
-			stream.incrementPosition(2);
-		}
+//		if (stream.getPosition() != stream.getEnd()) {
+			stream.incrementPosition(2);//user id
+//		}
+		
+		if (Options.debug_hexdump) {
+		    byte[] packet = new byte[length];
+		    stream.copyToByteArray(packet, 0, next_packet, length);
+            System.out.println(String.format("\nreceive RDP packet"));
+            System.out.println(net.propero.rdp.tools.HexDump.dumpHexString(packet));
+        }
 
 		this.next_packet += length;
 		return stream;
@@ -633,7 +673,7 @@ public class Rdp {
 			} catch (EOFException e) {
 				return;
 			}
-
+System.out.println("dataType=" + type[0]);
 			switch (type[0]) {
 
 			case (Rdp.RDP_PDU_DEMAND_ACTIVE):
@@ -738,42 +778,38 @@ public class Rdp {
 		} else {
 			flags |= RDP_LOGON_BLOB;
 			logger.debug("Sending RDP5-style Logon packet");
-			packetlen = 4
-					+ // Unknown uint32
-					4
-					+ // flags
-					2
-					+ // len_domain
-					2
-					+ // len_user
-					((flags & RDP_LOGON_AUTO) != 0 ? 2 : 0)
-					+ // len_password
-					((flags & RDP_LOGON_BLOB) != 0 ? 2 : 0)
-					+ // Length of BLOB
-					2
-					+ // len_program
-					2
-					+ // len_directory
-					(0 < domainlen ? domainlen + 2 : 2)
-					+ // domain
-					userlen
-					+ ((flags & RDP_LOGON_AUTO) != 0 ? passlen : 0)
-					+ 0
-					+ // We have no 512 byte BLOB. Perhaps we must?
-					((flags & RDP_LOGON_BLOB) != 0
-							&& (flags & RDP_LOGON_AUTO) == 0 ? 2 : 0)
-					+ (0 < commandlen ? commandlen + 2 : 2)
-					+ (0 < dirlen ? dirlen + 2 : 2) + 2 + // Unknown (2)
-					2 + // Client ip length
-					len_ip + // Client ip
-					2 + // DLL string length
-					len_dll + // DLL string
-					2 + // Unknown
-					2 + // Unknown
-					64 + // Time zone #0
-					20 + // Unknown
-					64 + // Time zone #1
-					32 + 6; // Unknown
+			packetlen = /* size of TS_INFO_PACKET */
+		            4 + /* CodePage */
+		            4 + /* flags */
+		            2 + /* cbDomain */
+		            2 + /* cbUserName */
+		            2 + /* cbPassword */
+		            2 + /* cbAlternateShell */
+		            2 + /* cbWorkingDir */
+		            2 + domainlen +    /* Domain */
+		            2 + userlen +  /* UserName */
+		            2 + passlen +  /* Password */
+		            2 + commandlen +   /* AlternateShell */
+		            2 + dirlen + /* WorkingDir */
+		            /* size of TS_EXTENDED_INFO_PACKET */
+		            2 + /* clientAdressFamily */
+		            2 + /* cbClientAdress */
+		            len_ip +    /* clientAddress */
+		            2 + /* cbClientDir */
+		            len_dll +   /* clientDir */
+		            /* size of TS_TIME_ZONE_INFORMATION */
+		            4 + /* Bias, (UTC = local time + bias */
+		            64 +    /* StandardName, 32 unicode char array, Descriptive standard time on client */
+		            16 +    /* StandardDate */
+		            4 + /* StandardBias */
+		            64 +    /* DaylightName, 32 unicode char array */
+		            16 +    /* DaylightDate */
+		            4 + /* DaylightBias */
+		            4 + /* clientSessionId */
+		            4 + /* performanceFlags */
+		            2 + /* cbAutoReconnectCookie, either 0 or 0x001c */
+		            /* size of ARC_CS_PRIVATE_PACKET */
+		            28; /* autoReconnectCookie */
 
 			data = SecureLayer.init(sec_flags, packetlen); // s =
 			// sec_init(sec_flags,
@@ -784,49 +820,41 @@ public class Rdp {
 			data.setLittleEndian32(flags); // out_uint32_le(s, flags);
 			data.setLittleEndian16(domainlen); // out_uint16_le(s, len_domain);
 			data.setLittleEndian16(userlen); // out_uint16_le(s, len_user);
-			if ((flags & RDP_LOGON_AUTO) != 0) {
-				data.setLittleEndian16(passlen); // out_uint16_le(s,
-				// len_password);
-			}
-			if ((flags & RDP_LOGON_BLOB) != 0
-					&& ((flags & RDP_LOGON_AUTO) == 0)) {
-				data.setLittleEndian16(0); // out_uint16_le(s, 0);
-			}
+			data.setLittleEndian16(passlen); // out_uint16_le(s,
 			data.setLittleEndian16(commandlen); // out_uint16_le(s,
-			// len_program);
-			data.setLittleEndian16(dirlen); // out_uint16_le(s, len_directory);
-
-			if (0 < domainlen)
-				data.outUnicodeString(domain, domainlen); // rdp_out_unistr(s,
-			// domain,
-			// len_domain);
-			else
-				data.setLittleEndian16(0); // out_uint16_le(s, 0);
-
-			data.outUnicodeString(username, userlen); // rdp_out_unistr(s,
-			// user, len_user);
-			if ((flags & RDP_LOGON_AUTO) != 0) {
-				data.outUnicodeString(password, passlen); // rdp_out_unistr(s,
-				// password,
-				// len_password);
-			}
-			if ((flags & RDP_LOGON_BLOB) != 0 && (flags & RDP_LOGON_AUTO) == 0) {
-				data.setLittleEndian16(0); // out_uint16_le(s, 0);
-			}
-			if (0 < commandlen) {
-				data.outUnicodeString(command, commandlen); // rdp_out_unistr(s,
-				// program,
-				// len_program);
+			data.setLittleEndian16(dirlen); // out_uint16_le(s,
+			
+			if (0 < domainlen) {
+			    data.outUnicodeString(domain, domainlen); // rdp_out_unistr(s,
 			} else {
-				data.setLittleEndian16(0); // out_uint16_le(s, 0);
+			    data.setLittleEndian16(0); // out_uint16_le(s, 0);
 			}
-			if (0 < dirlen) {
-				data.outUnicodeString(directory, dirlen); // rdp_out_unistr(s,
-				// directory,
-				// len_directory);
+			
+			if(0 < userlen) {
+			    data.outUnicodeString(username, userlen); // rdp_out_unistr(s,
 			} else {
-				data.setLittleEndian16(0); // out_uint16_le(s, 0);
+			    data.setLittleEndian16(0);
 			}
+			
+			if(0 < passlen) {
+			    data.outUnicodeString(password, passlen); // rdp_out_unistr(s,
+			} else {
+			    data.setLittleEndian16(0);
+			}
+			
+			if(0 < commandlen) {
+                data.outUnicodeString(command, commandlen); // rdp_out_unistr(s,
+            } else {
+                data.setLittleEndian16(0);
+            }
+			
+			if(0 < dirlen) {
+                data.outUnicodeString(directory, dirlen); // rdp_out_unistr(s,
+            } else {
+                data.setLittleEndian16(0);
+            }
+			
+			/* TS_EXTENDED_INFO_PACKET */
 			data.setLittleEndian16(2); // out_uint16_le(s, 2);
 			data.setLittleEndian16(len_ip + 2); // out_uint16_le(s, len_ip + 2);
 			// // Length of client ip
@@ -837,17 +865,14 @@ public class Rdp {
 			// + 2);
 			data.outUnicodeString("C:\\WINNT\\System32\\mstscax.dll", len_dll); // rdp_out_unistr(s,
 			// "C:\\WINNT\\System32\\mstscax.dll",
-			// len_dll);
+			
+			/* TS_TIME_ZONE_INFORMATION */
 			data.setLittleEndian16(0xffc4); // out_uint16_le(s, 0xffc4);
 			data.setLittleEndian16(0xffff); // out_uint16_le(s, 0xffff);
 			data.outUnicodeString("GTB, normaltid", 2 * "GTB, normaltid"
 					.length()); // rdp_out_unistr(s, "GTB, normaltid", 2 *
 			// strlen("GTB, normaltid"));
 			data.incrementPosition(62 - 2 * "GTB, normaltid".length()); // out_uint8s(s,
-			// 62 -
-			// 2 *
-			// strlen("GTB,
-			// normaltid"));
 
 			data.setLittleEndian32(0x0a0000); // out_uint32_le(s, 0x0a0000);
 			data.setLittleEndian32(0x050000); // out_uint32_le(s, 0x050000);
@@ -859,17 +884,13 @@ public class Rdp {
 					.length()); // rdp_out_unistr(s, "GTB, sommartid", 2 *
 			// strlen("GTB, sommartid"));
 			data.incrementPosition(62 - 2 * "GTB, sommartid".length()); // out_uint8s(s,
-			// 62 -
-			// 2 *
-			// strlen("GTB,
-			// sommartid"));
 
 			data.setLittleEndian32(0x30000); // out_uint32_le(s, 0x30000);
 			data.setLittleEndian32(0x050000); // out_uint32_le(s, 0x050000);
 			data.setLittleEndian32(2); // out_uint32_le(s, 2);
 			data.setLittleEndian32(0); // out_uint32(s, 0);
 			data.setLittleEndian32(0xffffffc4); // out_uint32_le(s, 0xffffffc4);
-			data.setLittleEndian32(0xfffffffe); // out_uint32_le(s, 0xfffffffe);
+			data.setLittleEndian32(0); // out_uint32_le(s, 0xfffffffe);
 			data.setLittleEndian32(Options.rdp5_performanceflags); // out_uint32_le(s,
 			// 0x0f);
 			data.setLittleEndian32(0); // out_uint32(s, 0);
@@ -941,6 +962,8 @@ public class Rdp {
 		ctype = data.get8(); // compression type
 		clen = data.getLittleEndian16(); // compression length
 		clen -= 18;
+		
+		System.out.println("data_pdu_type=" + data_type);
 
 		switch (data_type) {
 
@@ -969,6 +992,7 @@ public class Rdp {
 		case (Rdp.RDP_DATA_PDU_LOGON):
 			logger.debug("User logged on");
 			Rdesktop.loggedon = true;
+			processPduLogon(data);
 			break;
 		case RDP_DATA_PDU_DISCONNECT:
 			/* We used to return true and disconnect immediately here, but
@@ -1014,88 +1038,89 @@ public class Rdp {
 	}
 
 	private void sendConfirmActive() throws RdesktopException, IOException,
-			CryptoException {
-		int caplen = RDP_CAPLEN_GENERAL + RDP_CAPLEN_BITMAP + RDP_CAPLEN_ORDER
-				+ RDP_CAPLEN_COLCACHE
-				+ RDP_CAPLEN_ACTIVATE + RDP_CAPLEN_CONTROL +
-				+ RDP_CAPLEN_SHARE +
-			    + RDP_CAPLEN_UNKNOWN + 4; // this is a fix
-		// for W2k.
-		// Purpose
-		// unknown
-		
-		if (Options.use_rdp5) {
-	        caplen += RDP_CAPLEN_BMPCACHE2;
-	        caplen += RDP_CAPLEN_NEWPOINTER;
-	    } else {
-	        caplen += RDP_CAPLEN_BMPCACHE;
-	        caplen += RDP_CAPLEN_POINTER;
-	    }
-
-		int sec_flags = Options.encryption ? (RDP5_FLAG | Secure.SEC_ENCRYPT)
-				: RDP5_FLAG;
-
-		RdpPacket_Localised data = SecureLayer.init(sec_flags, 6 + 14 + caplen
-				+ RDP_SOURCE.length);
-
-		// RdpPacket_Localised data = this.init(14 + caplen +
-		// RDP_SOURCE.length);
-
-		data.setLittleEndian16(2 + 14 + caplen + RDP_SOURCE.length);
-		data.setLittleEndian16((RDP_PDU_CONFIRM_ACTIVE | 0x10));
-		data.setLittleEndian16(Common.mcs.getUserID() /* McsUserID() */+ 1001);
-
-		data.setLittleEndian32(this.rdp_shareid);
-		data.setLittleEndian16(0x3ea); // user id
-		data.setLittleEndian16(RDP_SOURCE.length);
-		data.setLittleEndian16(caplen);
-
-		data.copyFromByteArray(RDP_SOURCE, 0, data.getPosition(),
-				RDP_SOURCE.length);
-		data.incrementPosition(RDP_SOURCE.length);
-		data.setLittleEndian16(0xd); // num_caps
-		data.incrementPosition(2); // pad
-
-		this.sendGeneralCaps(data);
-		// ta.incrementPosition(this.RDP_CAPLEN_GENERAL);
-		this.sendBitmapCaps(data);
-		this.sendOrderCaps(data);
-
-		if (Options.use_rdp5) {
-			logger.info("Persistent caching enabled");
-			this.sendBitmapcache2Caps(data);
-			this.sendNewPointerCaps(data);
-		} else {
-			this.sendBitmapcacheCaps(data);
-		    this.sendPointerCaps(data);
-		}
-
-		this.sendColorcacheCaps(data);
-		this.sendActivateCaps(data);
-		this.sendControlCaps(data);
-		this.sendShareCaps(data);
-		// this.sendUnknownCaps(data);
-
-		this.sendUnknownCaps(data, 0x0d, 0x58, caps_0x0d); // rdp_out_unknown_caps(s,
-		// 0x0d, 0x58,
-		// caps_0x0d); /*
-		// international? */
-		this.sendUnknownCaps(data, 0x0c, 0x08, caps_0x0c); // rdp_out_unknown_caps(s,
-		// 0x0c, 0x08,
-		// caps_0x0c);
-		this.sendUnknownCaps(data, 0x0e, 0x08, caps_0x0e); // rdp_out_unknown_caps(s,
-		// 0x0e, 0x08,
-		// caps_0x0e);
-		this.sendUnknownCaps(data, 0x10, 0x34, caps_0x10); // rdp_out_unknown_caps(s,
-		// 0x10, 0x34,
-		// caps_0x10); /*
-		// glyph cache? */
-
-		data.markEnd();
-		logger.debug("confirm active");
-		// this.send(data, RDP_PDU_CONFIRM_ACTIVE);
-		Common.secure.send(data, sec_flags);
-	}
+    		CryptoException {
+        int sec_flags = Options.encryption ? (RDP5_FLAG | Secure.SEC_ENCRYPT)
+                : RDP5_FLAG;
+        
+    	int caplen = RDP_CAPLEN_GENERAL + RDP_CAPLEN_BITMAP + RDP_CAPLEN_ORDER
+    			+ RDP_CAPLEN_COLCACHE
+    			+ RDP_CAPLEN_ACTIVATE + RDP_CAPLEN_CONTROL
+    			+ RDP_CAPLEN_SHARE
+    			/*RDP_CAPLEN_BRUSHCACHE*/ + 0x58 + 0x08 + 0x08 + 0x34 /* unknown caps */  
+    			+ 4; // this is a fix
+    	// for W2k.
+    	// Purpose
+    	// unknown
+    	
+    	if (Options.use_rdp5) {
+            caplen += RDP_CAPLEN_BMPCACHE2;
+            caplen += RDP_CAPLEN_NEWPOINTER;
+        } else {
+            caplen += RDP_CAPLEN_BMPCACHE;
+            caplen += RDP_CAPLEN_POINTER;
+        }
+    
+    	RdpPacket_Localised data = SecureLayer.init(sec_flags, 6 + 14 + caplen
+    			+ RDP_SOURCE.length);
+    
+    	// RdpPacket_Localised data = this.init(14 + caplen +
+    	// RDP_SOURCE.length);
+    
+    	data.setLittleEndian16(2 + 14 + caplen + RDP_SOURCE.length);
+    	data.setLittleEndian16((RDP_PDU_CONFIRM_ACTIVE | 0x10));
+    	data.setLittleEndian16(Common.mcs.getUserID() /* McsUserID() */+ 1001);
+    
+    	data.setLittleEndian32(this.rdp_shareid);
+    	data.setLittleEndian16(0x3ea); // user id
+    	data.setLittleEndian16(RDP_SOURCE.length);
+    	data.setLittleEndian16(caplen);
+    
+    	data.copyFromByteArray(RDP_SOURCE, 0, data.getPosition(),
+    			RDP_SOURCE.length);
+    	data.incrementPosition(RDP_SOURCE.length);
+    	data.setLittleEndian16(0xd); // num_caps
+    	data.incrementPosition(2); // pad
+    
+    	this.sendGeneralCaps(data);
+    	// ta.incrementPosition(this.RDP_CAPLEN_GENERAL);
+    	this.sendBitmapCaps(data);
+    	this.sendOrderCaps(data);
+    
+    	if (Options.use_rdp5) {
+    		logger.info("Persistent caching enabled");
+    		this.sendBitmapcache2Caps(data);
+    		this.sendNewPointerCaps(data);
+    	} else {
+    		this.sendBitmapcacheCaps(data);
+    	    this.sendPointerCaps(data);
+    	}
+    
+    	this.sendColorcacheCaps(data);
+    	this.sendActivateCaps(data);
+    	this.sendControlCaps(data);
+    	this.sendShareCaps(data);
+    	// this.sendUnknownCaps(data);
+    
+    	this.sendUnknownCaps(data, 0x0d, 0x58, caps_0x0d); // rdp_out_unknown_caps(s,
+    	// 0x0d, 0x58,
+    	// caps_0x0d); /*
+    	// international? */
+    	this.sendUnknownCaps(data, 0x0c, 0x08, caps_0x0c); // rdp_out_unknown_caps(s,
+    	// 0x0c, 0x08,
+    	// caps_0x0c);
+    	this.sendUnknownCaps(data, 0x0e, 0x08, caps_0x0e); // rdp_out_unknown_caps(s,
+    	// 0x0e, 0x08,
+    	// caps_0x0e);
+    	this.sendUnknownCaps(data, 0x10, 0x34, caps_0x10); // rdp_out_unknown_caps(s,
+    	// 0x10, 0x34,
+    	// caps_0x10); /*
+    	// glyph cache? */
+    
+    	data.markEnd();
+    	logger.debug("confirm active");
+    	// this.send(data, RDP_PDU_CONFIRM_ACTIVE);
+    	Common.secure.send(data, sec_flags);
+    }
 
 	private void sendGeneralCaps(RdpPacket_Localised data) {
 
@@ -1105,6 +1130,8 @@ public class Rdp {
 		data.setLittleEndian16(1); /* OS major type */
 		data.setLittleEndian16(3); /* OS minor type */
 		data.setLittleEndian16(0x200); /* Protocol version */
+		data.setLittleEndian16(0);//pad
+		data.setLittleEndian16(0); /* Compression types */
 		data.setLittleEndian16(Options.use_rdp5 ? 0x40d : 0);
 		// data.setLittleEndian16(Options.use_rdp5 ? 0x1d04 : 0); // this seems
 		/*
@@ -1113,8 +1140,6 @@ public class Rdp {
 		 * NT4MS. Hmm.. Anyway, thankyou, Microsoft, for sending such
 		 * information in a padding field..
 		 */
-		data.setLittleEndian16(0); /* Compression types */
-		data.setLittleEndian16(0); /* Pad */
 		data.setLittleEndian16(0); /* Update capability */
 		data.setLittleEndian16(0); /* Remote unshare capability */
 		data.setLittleEndian16(0); /* Compression level */
@@ -1130,8 +1155,8 @@ public class Rdp {
 		data.setLittleEndian16(1); /* Receive 1 BPP */
 		data.setLittleEndian16(1); /* Receive 4 BPP */
 		data.setLittleEndian16(1); /* Receive 8 BPP */
-		data.setLittleEndian16(Options.width); /* Desktop width */
-		data.setLittleEndian16(Options.height); /* Desktop height */
+		data.setLittleEndian16(800); /* Desktop width */
+		data.setLittleEndian16(600); /* Desktop height */
 		data.setLittleEndian16(0); /* Pad */
 		data.setLittleEndian16(1); /* Allow resize */
 		data.setLittleEndian16(Options.bitmap_compression ? 1 : 0); /*
@@ -1146,23 +1171,24 @@ public class Rdp {
 	private void sendOrderCaps(RdpPacket_Localised data) {
 
 		byte[] order_caps = new byte[32];
-		order_caps[0] = 1; /* dest blt */
-		order_caps[1] = 1; /* pat blt */// nb no rectangle orders if this is 0
-		order_caps[2] = 1; /* screen blt */
-		order_caps[3] = (byte) (Options.bitmap_caching ? 1 : 0); /* memblt */
-		order_caps[4] = 0; /* triblt */
-		order_caps[8] = 1; /* line */
-		order_caps[9] = 1; /* line */
-		order_caps[10] = 1; /* rect */
-		order_caps[11] = (Constants.desktop_save ? 1 : 0); /* desksave */
-		order_caps[13] = 1; /* memblt */
-		order_caps[14] = 1; /* triblt */
-		order_caps[20] = (byte) (Options.polygon_ellipse_orders ? 1 : 0); /* polygon */
-		order_caps[21] = (byte) (Options.polygon_ellipse_orders ? 1 : 0); /* polygon2 */
-		order_caps[22] = 1; /* polyline */
-		order_caps[25] = (byte) (Options.polygon_ellipse_orders ? 1 : 0); /* ellipse */
-		order_caps[26] = (byte) (Options.polygon_ellipse_orders ? 1 : 0); /* ellipse2 */
-		order_caps[27] = 1; /* text2 */
+		order_caps[0] = 1;    /* dest blt */
+	    order_caps[1] = 1;  /* pat blt */
+	    order_caps[2] = 1;  /* screen blt */
+	    order_caps[3] = (byte) (Options.bitmap_caching ? 1 : 0);   /* memblt */
+	    order_caps[4] = 0;  /* triblt */
+	    order_caps[8] = 1;  /* line */
+	    order_caps[9] = 1;  /* line */
+	    order_caps[10] = 1; /* rect */
+	    order_caps[11] = (byte) (Constants.desktop_save ? 1 : 0);  /* desksave */
+	    order_caps[13] = 1; /* memblt */
+	    order_caps[14] = 1; /* triblt */
+	    order_caps[20] = (byte) (Options.polygon_ellipse_orders ? 1 : 0);    /* polygon */
+	    order_caps[21] = (byte) (Options.polygon_ellipse_orders ? 1 : 0);    /* polygon2 */
+	    order_caps[22] = 1; /* polyline */
+	    order_caps[25] = (byte) (Options.polygon_ellipse_orders ? 1 : 0);    /* ellipse */
+	    order_caps[26] = (byte) (Options.polygon_ellipse_orders ? 1 : 0);    /* ellipse2 */
+	    order_caps[27] = 1; /* text2 */
+	    
 		data.setLittleEndian16(RDP_CAPSET_ORDER);
 		data.setLittleEndian16(RDP_CAPLEN_ORDER);
 
@@ -1376,7 +1402,7 @@ public class Rdp {
 		RdpPacket_Localised data = this.initData(8);
 
 		data.setLittleEndian16(0); /* number of fonts */
-		data.setLittleEndian16(0x3e); /* unknown */
+		data.setLittleEndian16(0); /* pad? */
 		data.setLittleEndian16(seq); /* unknown */
 		data.setLittleEndian16(0x32); /* entry size */
 

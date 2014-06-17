@@ -51,21 +51,21 @@ public class Rdp5 extends Rdp {
 		this.channels = channels;
 	}
 
-	/**
-	 * Process an RDP5 packet
-	 * 
-	 * @param s
-	 *            Packet to be processed
-	 * @param e
-	 *            True if packet is encrypted
-	 * @throws RdesktopException
-	 * @throws OrderException
-	 * @throws CryptoException
-	 */
-	public void rdp5_process(RdpPacket_Localised s, boolean e)
-			throws RdesktopException, OrderException, CryptoException {
-		rdp5_process(s, e, false);
-	}
+//	/**
+//	 * Process an RDP5 packet
+//	 * 
+//	 * @param s
+//	 *            Packet to be processed
+//	 * @param e
+//	 *            True if packet is encrypted
+//	 * @throws RdesktopException
+//	 * @throws OrderException
+//	 * @throws CryptoException
+//	 */
+//	public void rdp5_process(RdpPacket_Localised s, boolean e)
+//			throws RdesktopException, OrderException, CryptoException {
+//		rdp5_process(s, e, false);
+//	}
 
 	/**
 	 * Process an RDP5 packet
@@ -80,8 +80,7 @@ public class Rdp5 extends Rdp {
 	 * @throws OrderException
 	 * @throws CryptoException
 	 */
-	public void rdp5_process(RdpPacket_Localised s, boolean encryption,
-			boolean shortform) throws RdesktopException, OrderException,
+	public void rdp5_process(RdpPacket_Localised s, boolean encryption) throws RdesktopException, OrderException,
 			CryptoException {
 		logger.debug("Processing RDP 5 order");
 
@@ -89,55 +88,61 @@ public class Rdp5 extends Rdp {
 		int type;
 		int next;
 
+		byte[] packet = null;
 		if (encryption) {
-			s.incrementPosition(shortform ? 6 : 7 /* XXX HACK */); /* signature */
+			s.incrementPosition(8); /* signature */
 			byte[] data = new byte[s.size() - s.getPosition()];
 			s.copyToByteArray(data, 0, s.getPosition(), data.length);
-			byte[] packet = SecureLayer.decrypt(data);
+			packet = SecureLayer.decrypt(data);
 		}
 
 		// printf("RDP5 data:\n");
 		// hexdump(s->p, s->end - s->p);
+		RdpPacket_Localised bf = new RdpPacket_Localised(packet.length);
+		bf.copyFromByteArray(packet, 0, 0, packet.length);
+		bf.incrementPosition(packet.length);
+		bf.markEnd();
+		bf.setPosition(0);
 
-		while (s.getPosition() < s.getEnd()) {
-			type = s.get8();
-			length = s.getLittleEndian16();
-			/* next_packet = */next = s.getPosition() + length;
+		while (bf.getPosition() < bf.getEnd()) {
+			type = bf.get8();
+			length = bf.getLittleEndian16();
+			/* next_packet = */next = bf.getPosition() + length;
 			logger.debug("RDP5: type = " + type);
 			switch (type) {
 			case 0: /* orders */
-				count = s.getLittleEndian16();
-				orders.processOrders(s, next, count);
+				count = bf.getLittleEndian16();
+				orders.processOrders(bf, next, count);
 				break;
 			case 1: /* bitmap update (???) */
-				s.incrementPosition(2); /* part length */
-				processBitmapUpdates(s);
+			    bf.incrementPosition(2); /* part length */
+				processBitmapUpdates(bf);
 				break;
 			case 2: /* palette */
-				s.incrementPosition(2);
-				processPalette(s);
+			    bf.incrementPosition(2);
+				processPalette(bf);
 				break;
 			case 3: /* probably an palette with offset 3. Weird */
 				break;
 			case 5:
-				process_null_system_pointer_pdu(s);
+				process_null_system_pointer_pdu(bf);
 				break;
 			case 6: // default pointer
 				break;
 			case 9:
-				process_colour_pointer_pdu(s);
+				process_colour_pointer_pdu(bf);
 				break;
 			case 10:
-				process_cached_pointer_pdu(s);
+				process_cached_pointer_pdu(bf);
 				break;
 			case 11:
-			    process_new_pointer_pdu(s);
+			    process_new_pointer_pdu(bf);
                 break;
 			default:
 				logger.warn("Unimplemented RDP5 opcode " + type);
 			}
 
-			s.setPosition(next);
+			bf.setPosition(next);
 		}
 	}
 
