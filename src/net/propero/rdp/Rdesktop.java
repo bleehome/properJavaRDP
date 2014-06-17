@@ -45,8 +45,6 @@ import net.propero.rdp.rdp5.Rdp5;
 import net.propero.rdp.rdp5.VChannels;
 import net.propero.rdp.rdp5.cliprdr.ClipChannel;
 import net.propero.rdp.rdp5.disk.DiskChannel;
-import net.propero.rdp.rdp5.rdpdr.DiskRdpdrDevice;
-import net.propero.rdp.rdp5.rdpdr.RdpdrChannel;
 import net.propero.rdp.tools.SendEvent;
 
 import org.apache.log4j.BasicConfigurator;
