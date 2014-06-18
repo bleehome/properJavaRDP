@@ -132,7 +132,7 @@ public class Options {
 
 	public static boolean persistent_bitmap_caching = false;
 
-	public static boolean bitmap_caching = false;
+	public static boolean bitmap_caching = true;
 
 	public static boolean precache_bitmaps = false;
 
@@ -162,7 +162,7 @@ public class Options {
 
 	public static int rdp5_performanceflags = Rdp.RDP5_NO_CURSOR_SHADOW
 			| Rdp.RDP5_NO_CURSORSETTINGS | Rdp.RDP5_NO_FULLWINDOWDRAG
-			| Rdp.RDP5_NO_MENUANIMATIONS | Rdp.RDP5_NO_THEMING
+			| Rdp.RDP5_NO_MENUANIMATIONS /*| Rdp.RDP5_NO_THEMING*/
 			| Rdp.RDP5_NO_WALLPAPER;
 
 	public static boolean save_graphics = false;

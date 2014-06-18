@@ -12,7 +12,6 @@ import net.propero.rdp.RdpPacket_Localised;
 import net.propero.rdp.crypto.CryptoException;
 import net.propero.rdp.rdp5.VChannel;
 import net.propero.rdp.rdp5.VChannels;
-import net.propero.rdp.tools.HexDump;
 
 /**
  * 专做远和程盘映射的cnannel

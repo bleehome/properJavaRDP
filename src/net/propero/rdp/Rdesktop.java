@@ -45,6 +45,7 @@ import net.propero.rdp.rdp5.Rdp5;
 import net.propero.rdp.rdp5.VChannels;
 import net.propero.rdp.rdp5.cliprdr.ClipChannel;
 import net.propero.rdp.rdp5.disk.DiskChannel;
+import net.propero.rdp.rdp5.snd.SoundChannel;
 import net.propero.rdp.tools.SendEvent;
 
 import org.apache.log4j.BasicConfigurator;
@@ -330,6 +331,7 @@ public class Rdesktop {
 				"bc:d:f::g:k:l:m:n:p:s:t:T:u:o:r:", alo);
 
 		ClipChannel clipChannel = new ClipChannel();
+		SoundChannel soundChannel = new SoundChannel();
 		
 		DiskChannel diskChannel = new DiskChannel();
 		diskChannel.addDiskDevice("linux", "/home/blee/temp/rdptest");
@@ -543,6 +545,7 @@ public class Rdesktop {
 			if (Options.map_clipboard) {
 			    channels.register(clipChannel);
 			}
+			channels.register(soundChannel);
 			channels.register(diskChannel);
 		}
 
