@@ -132,7 +132,7 @@ public class Options {
 
 	public static boolean persistent_bitmap_caching = false;
 
-	public static boolean bitmap_caching = true;
+	public static boolean bitmap_caching = false;
 
 	public static boolean precache_bitmaps = false;
 
