@@ -548,9 +548,9 @@ public class Rdp {
 			return stream;
 		}
 		type[0] = this.stream.getLittleEndian16() & 0xf;
-//		if (stream.getPosition() != stream.getEnd()) {
+		if (stream.getPosition() != stream.getEnd()) {
 			stream.incrementPosition(2);//user id
-//		}
+		}
 		
 		if (Options.debug_hexdump) {
 		    byte[] packet = new byte[length];

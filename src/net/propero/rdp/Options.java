@@ -132,11 +132,11 @@ public class Options {
 
 	public static boolean persistent_bitmap_caching = false;
 
-	public static boolean bitmap_caching = true;
+	public static boolean bitmap_caching = false;
 
 	public static boolean precache_bitmaps = false;
 
-	public static boolean polygon_ellipse_orders = true;
+	public static boolean polygon_ellipse_orders = false;
 
 	public static boolean sendmotion = true;
 

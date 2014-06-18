@@ -121,7 +121,7 @@ public abstract class VChannel {
 	 * @throws IOException
 	 * @throws CryptoException
 	 */
-	public synchronized void send_packet(RdpPacket_Localised data) throws RdesktopException,
+	public void send_packet(RdpPacket_Localised data) throws RdesktopException,
 			IOException, CryptoException {
 		if (Common.secure == null)
 			return;

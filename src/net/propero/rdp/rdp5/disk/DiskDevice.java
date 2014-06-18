@@ -61,13 +61,13 @@ public class DiskDevice implements Device, DiskConst {
 
     @Override
     public int process(RdpPacket data, IRP irp) throws IOException {
-        System.out.print("执行" + irp.majorFunction + ", fileId=" + irp.fileId);
+//        System.out.print("执行" + irp.majorFunction + ", fileId=" + irp.fileId);
         DriveFile df = files.get(irp.fileId);
-        if(df != null) {
-            System.out.println(",filePath=" + df.fullPath);
-        } else {
-            System.out.println();
-        }
+//        if(df != null) {
+//            System.out.println(",filePath=" + df.fullPath);
+//        } else {
+//            System.out.println();
+//        }
         
         switch(irp.majorFunction) {
         case IRP_MJ_READ:
