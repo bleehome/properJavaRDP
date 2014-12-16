@@ -1390,18 +1390,18 @@ public class Orders {
 					clipcx, clipcy, text2.getBackgroundColor());
 		}
 
-		/*
-		 * logger.debug("X: " + text2.getX() + " Y: " + text2.getY() + " Left
-		 * Clip: " + text2.getClipLeft() + " Top Clip: " + text2.getClipTop() + "
-		 * Right Clip: " + text2.getClipRight() + " Bottom Clip: " +
-		 * text2.getClipBottom() + " Left Box: " + text2.getBoxLeft() + " Top
-		 * Box: " + text2.getBoxTop() + " Right Box: " + text2.getBoxRight() + "
-		 * Bottom Box: " + text2.getBoxBottom() + " Foreground Color: " +
-		 * text2.getForegroundColor() + " Background Color: " +
-		 * text2.getBackgroundColor() + " Font: " + text2.getFont() + " Flags: " +
-		 * text2.getFlags() + " Mixmode: " + text2.getMixmode() + " Unknown: " +
-		 * text2.getUnknown() + " Length: " + text2.getLength());
-		 */
+		
+//		System.out.println("X: " + text2.getX() + " Y: " + text2.getY() + " Left Clip: " + 
+//		text2.getClipLeft() + " Top Clip: " + text2.getClipTop() + "Right Clip: " + 
+//        text2.getClipRight() + " Bottom Clip: " +
+//		text2.getClipBottom() + " Left Box: " + text2.getBoxLeft() + " TopBox: " + 
+//        text2.getBoxTop() + " Right Box: " + text2.getBoxRight() + "Bottom Box: " + 
+//		text2.getBoxBottom() + " Foreground Color: " +
+//		text2.getForegroundColor() + " Background Color: " +
+//		text2.getBackgroundColor() + " Font: " + text2.getFont() + " Flags: " +
+//		text2.getFlags() + " Mixmode: " + text2.getMixmode() + " Unknown: " +
+//		text2.getUnknown() + " Length: " + text2.getLength());
+		
 		for (int i = 0; i < length;) {
 			switch (text[ptext + i] & 0x000000ff) {
 			case (0xff):

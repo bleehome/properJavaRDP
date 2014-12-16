@@ -1133,7 +1133,7 @@ public abstract class RdesktopCanvas extends Canvas {
 					if ((data[pdata] & index) != 0) {
 						if ((x + j >= newx) && (newx + j > 0) && (newy + i > 0))
 							// since haven't offset x
-							backstore.setRGB(newx + j, newy + i, fgcolor);
+							backstore.setRGB(x + j, newy + i, fgcolor);
 					}
 					index >>= 1;
 				}
