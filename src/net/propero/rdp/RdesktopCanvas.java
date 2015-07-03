@@ -1112,9 +1112,10 @@ public abstract class RdesktopCanvas extends Canvas {
 		int clipbottom = y + cy - 1;
 		if (clipbottom > this.bottom)
 			clipbottom = this.bottom;
-		if (y < this.top)
-			newy = this.top;
-		else
+		int top = this.top;
+//		if (y < this.top)
+//			newy = this.top;
+//		else
 			newy = y;
 
 		newcy = clipbottom - newy + 1;
@@ -1131,7 +1132,7 @@ public abstract class RdesktopCanvas extends Canvas {
 					}
 
 					if ((data[pdata] & index) != 0) {
-						if ((x + j >= newx) && (newx + j > 0) && (newy + i > 0))
+						if ((x + j >= newx) && (newx + j > 0) && (newy + i > 0) && (y + i >= top))
 							// since haven't offset x
 							backstore.setRGB(x + j, newy + i, fgcolor);
 					}
@@ -1152,7 +1153,7 @@ public abstract class RdesktopCanvas extends Canvas {
 						index = 0x80;
 					}
 
-					if (x + j >= newx) {
+					if (x + j >= newx && y + i >= top) {
 						if ((x + j > 0) && (y + i > 0)) {
 							if ((data[pdata] & index) != 0)
 								backstore.setRGB(x + j, y + i, fgcolor);

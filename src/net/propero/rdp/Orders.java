@@ -1382,13 +1382,13 @@ public class Orders {
 		int x = text2.getX();
 		int y = text2.getY();
 
-		if (boxcx > 1) {
-			surface.fillRectangle(text2.getBoxLeft(), text2.getBoxTop(), boxcx,
-					boxcy, text2.getBackgroundColor());
-		} else if (text2.getMixmode() == MIX_OPAQUE) {
-			surface.fillRectangle(text2.getClipLeft(), text2.getClipTop(),
-					clipcx, clipcy, text2.getBackgroundColor());
-		}
+//		if (boxcx > 1) {
+//			surface.fillRectangle(text2.getBoxLeft(), text2.getBoxTop(), boxcx,
+//					boxcy, text2.getBackgroundColor());
+//		} else if (text2.getMixmode() == MIX_OPAQUE) {
+//			surface.fillRectangle(text2.getClipLeft(), text2.getClipTop(),
+//					clipcx, clipcy, text2.getBackgroundColor());
+//		}
 
 		
 //		System.out.println("X: " + text2.getX() + " Y: " + text2.getY() + " Left Clip: " + 
@@ -1444,8 +1444,8 @@ public class Orders {
 
 				byte[] data = entry.getData();
 				for (int j = 0; j < entry.getSize(); j++) {
-					glyph = cache
-							.getFont(text2.getFont(), data[j] & 0x000000ff);
+				    int character = data[j] & 0x000000ff;
+					glyph = cache.getFont(text2.getFont(), character);
 					if ((text2.getFlags() & TEXT2_IMPLICIT_X) == 0) {
 						offset = data[++j] & 0x000000ff;
 						if ((offset & 0x80) != 0) {
@@ -1471,13 +1471,13 @@ public class Orders {
 						}
 					}
 					if (glyph != null) {
+					    int xx = x + (short) glyph.getOffset(), yy = y + (short) glyph.getBaseLine();
+//					    System.out.print(String.format("font=%d, character=%d, x=%d,y=%d,x1=%d,y1=%d \n", text2.getFont(), character, x, y, xx, yy));
 						// if((text2.getFlags() & TEXT2_VERTICAL) != 0)
 						// logger.info("Drawing glyph: (" + (x +
 						// (short)glyph.getOffset()) + ", " + (y +
 						// (short)glyph.getBaseLine()) + ")" );
-						surface.drawGlyph(text2.getMixmode(), x
-								+ (short) glyph.getOffset(), y
-								+ (short) glyph.getBaseLine(),
+						surface.drawGlyph(text2.getMixmode(), xx, yy,
 								glyph.getWidth(), glyph.getHeight(), glyph
 										.getFontData(), text2
 										.getBackgroundColor(), text2
